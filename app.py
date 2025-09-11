@@ -3,6 +3,7 @@ import pandas as pd
 import joblib
 import numpy as np
 import time
+import matplotlib.pyplot as plt
 
 # Page configuration
 st.set_page_config(
@@ -396,7 +397,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Create tabs
-tab1, tab2, tab3 = st.tabs(["Single Product Analysis", "Batch Processing", "Learn More"])
+tab1, tab2, tab3, tab4 = st.tabs(["Single Product Analysis", "Batch Processing", "Dashboard", "Learn More"])
 
 with tab1:
     st.markdown('<h2 class="section-header">Single Product Prediction</h2>', unsafe_allow_html=True)
@@ -618,6 +619,296 @@ with tab2:
                     st.write(f"• **{feature}**")
 
 with tab3:
+    st.markdown('<h2 class="section-header">Analytics Dashboard</h2>', unsafe_allow_html=True)
+    
+    st.info("Explore comprehensive statistics and insights from the retail sales dataset.")
+    
+    # Load and analyze the dataset
+    @st.cache_data
+    def load_sales_data():
+        try:
+            df = pd.read_csv('data/supermarket_sales.csv')
+            return df
+        except Exception as e:
+            st.error(f"Error loading data: {str(e)}")
+            return None
+    
+    df = load_sales_data()
+    
+    if df is not None:
+        # Key Metrics Row
+        st.subheader("📊 Key Performance Indicators")
+        
+        col1, col2, col3, col4, col5 = st.columns(5)
+        
+        with col1:
+            total_sales = df['Item_Outlet_Sales'].sum()
+            st.metric(
+                "Total Sales", 
+                f"₹{total_sales:,.0f}",
+                help="Sum of all item outlet sales"
+            )
+        
+        with col2:
+            avg_sales = df['Item_Outlet_Sales'].mean()
+            st.metric(
+                "Average Sales", 
+                f"₹{avg_sales:.0f}",
+                help="Mean sales per item"
+            )
+        
+        with col3:
+            total_profit = df['Profit'].sum()
+            st.metric(
+                "Total Profit", 
+                f"₹{total_profit:,.0f}",
+                help="Sum of all profits"
+            )
+        
+        with col4:
+            avg_profit_margin = (df['Profit'] / df['Item_Outlet_Sales'] * 100).mean()
+            st.metric(
+                "Avg Profit Margin", 
+                f"{avg_profit_margin:.1f}%",
+                help="Average profit margin percentage"
+            )
+        
+        with col5:
+            total_products = df.shape[0]
+            st.metric(
+                "Total Products", 
+                f"{total_products:,}",
+                help="Number of products in dataset"
+            )
+        
+        st.markdown("---")
+        
+        # Sales Analysis Section
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("🛍️ Sales by Product Category")
+            
+            category_sales = df.groupby('Item_Type')['Item_Outlet_Sales'].sum().sort_values(ascending=False)
+            category_sales_formatted = category_sales.apply(lambda x: f"₹{x:,.0f}")
+            
+            # Create a chart
+            import matplotlib.pyplot as plt
+            fig, ax = plt.subplots(figsize=(10, 8))
+            category_sales.head(10).plot(kind='barh', ax=ax, color='#667eea')
+            ax.set_xlabel('Sales (₹)')
+            ax.set_title('Top 10 Categories by Sales')
+            plt.tight_layout()
+            st.pyplot(fig)
+            plt.close()
+            
+            with st.expander("View Detailed Category Statistics"):
+                st.dataframe(
+                    pd.DataFrame({
+                        'Category': category_sales.index,
+                        'Total Sales': category_sales_formatted.values,
+                        'Products Count': df.groupby('Item_Type').size().values
+                    }).set_index('Category'),
+                    use_container_width=True
+                )
+        
+        with col2:
+            st.subheader("🏪 Performance by Store Type")
+            
+            outlet_performance = df.groupby('Outlet_Type').agg({
+                'Item_Outlet_Sales': ['sum', 'mean', 'count'],
+                'Profit': 'sum'
+            }).round(2)
+            
+            outlet_performance.columns = ['Total Sales', 'Avg Sales', 'Product Count', 'Total Profit']
+            
+            # Format currency columns
+            for col in ['Total Sales', 'Avg Sales', 'Total Profit']:
+                outlet_performance[col] = outlet_performance[col].apply(lambda x: f"₹{x:,.0f}")
+            
+            st.dataframe(outlet_performance, use_container_width=True)
+            
+            # Pie chart for store type distribution
+            store_sales = df.groupby('Outlet_Type')['Item_Outlet_Sales'].sum()
+            fig, ax = plt.subplots(figsize=(8, 6))
+            colors = ['#667eea', '#764ba2', '#f093fb', '#f5576c']
+            ax.pie(store_sales.values, labels=store_sales.index, autopct='%1.1f%%', colors=colors)
+            ax.set_title('Sales Distribution by Store Type')
+            st.pyplot(fig)
+            plt.close()
+        
+        st.markdown("---")
+        
+        # Geographic and Establishment Analysis
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("🌍 Geographic Performance")
+            
+            location_stats = df.groupby('Outlet_Location_Type').agg({
+                'Item_Outlet_Sales': ['sum', 'mean'],
+                'Profit': 'mean',
+                'Item_Identifier': 'count'
+            }).round(2)
+            
+            location_stats.columns = ['Total Sales', 'Avg Sales', 'Avg Profit', 'Store Count']
+            location_stats['Total Sales'] = location_stats['Total Sales'].apply(lambda x: f"₹{x:,.0f}")
+            location_stats['Avg Sales'] = location_stats['Avg Sales'].apply(lambda x: f"₹{x:.0f}")
+            location_stats['Avg Profit'] = location_stats['Avg Profit'].apply(lambda x: f"₹{x:.2f}")
+            
+            st.dataframe(location_stats, use_container_width=True)
+            
+            # Bar chart for location performance
+            location_sales = df.groupby('Outlet_Location_Type')['Item_Outlet_Sales'].mean()
+            fig, ax = plt.subplots(figsize=(8, 5))
+            location_sales.plot(kind='bar', ax=ax, color='#764ba2')
+            ax.set_ylabel('Average Sales (₹)')
+            ax.set_title('Average Sales by Location Tier')
+            ax.tick_params(axis='x', rotation=45)
+            plt.tight_layout()
+            st.pyplot(fig)
+            plt.close()
+        
+        with col2:
+            st.subheader("📅 Store Age Analysis")
+            
+            # Calculate store age
+            current_year = 2025
+            df['Store_Age'] = current_year - df['Outlet_Establishment_Year']
+            
+            age_performance = df.groupby('Store_Age').agg({
+                'Item_Outlet_Sales': 'mean',
+                'Profit': 'mean'
+            }).round(2)
+            
+            # Line chart for store age vs performance
+            fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8))
+            
+            age_performance['Item_Outlet_Sales'].plot(ax=ax1, color='#667eea', marker='o')
+            ax1.set_ylabel('Average Sales (₹)')
+            ax1.set_title('Sales Performance vs Store Age')
+            ax1.grid(True, alpha=0.3)
+            
+            age_performance['Profit'].plot(ax=ax2, color='#f5576c', marker='s')
+            ax2.set_ylabel('Average Profit (₹)')
+            ax2.set_xlabel('Store Age (Years)')
+            ax2.set_title('Profit vs Store Age')
+            ax2.grid(True, alpha=0.3)
+            
+            plt.tight_layout()
+            st.pyplot(fig)
+            plt.close()
+        
+        st.markdown("---")
+        
+        # Product Insights Section
+        st.subheader("🔍 Product Performance Insights")
+        
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.subheader("Fat Content Impact")
+            fat_performance = df.groupby('Item_Fat_Content')['Item_Outlet_Sales'].mean().round(2)
+            
+            for fat_type, sales in fat_performance.items():
+                st.metric(f"{fat_type} Products", f"₹{sales:.0f}")
+            
+            # Show difference
+            if len(fat_performance) == 2:
+                diff = abs(fat_performance.iloc[0] - fat_performance.iloc[1])
+                st.info(f"Difference: ₹{diff:.0f}")
+        
+        with col2:
+            st.subheader("Store Size Impact")
+            size_performance = df.groupby('Outlet_Size')['Item_Outlet_Sales'].mean().round(2)
+            
+            for size, sales in size_performance.items():
+                st.metric(f"{size} Stores", f"₹{sales:.0f}")
+        
+        with col3:
+            st.subheader("Visibility Impact")
+            # Create visibility bins for better analysis
+            df['Visibility_Range'] = pd.cut(df['Item_Visibility'], 
+                                          bins=[0, 0.05, 0.1, 0.15, 1.0], 
+                                          labels=['Very Low', 'Low', 'Medium', 'High'])
+            
+            visibility_performance = df.groupby('Visibility_Range')['Item_Outlet_Sales'].mean().round(2)
+            
+            for visibility, sales in visibility_performance.items():
+                if pd.notna(sales):
+                    st.metric(f"{visibility} Visibility", f"₹{sales:.0f}")
+        
+        st.markdown("---")
+        
+        # Top and Bottom Performers
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("🏆 Top Performing Products")
+            top_products = df.nlargest(10, 'Item_Outlet_Sales')[['Item_Identifier', 'Item_Type', 'Item_Outlet_Sales', 'Outlet_Type']]
+            top_products['Item_Outlet_Sales'] = top_products['Item_Outlet_Sales'].apply(lambda x: f"₹{x:,.0f}")
+            st.dataframe(top_products.set_index('Item_Identifier'), use_container_width=True)
+        
+        with col2:
+            st.subheader("📉 Improvement Opportunities")
+            bottom_products = df.nsmallest(10, 'Item_Outlet_Sales')[['Item_Identifier', 'Item_Type', 'Item_Outlet_Sales', 'Outlet_Type']]
+            bottom_products['Item_Outlet_Sales'] = bottom_products['Item_Outlet_Sales'].apply(lambda x: f"₹{x:,.0f}")
+            st.dataframe(bottom_products.set_index('Item_Identifier'), use_container_width=True)
+        
+        st.markdown("---")
+        
+        # Download section
+        st.subheader("📥 Export Analytics Data")
+        
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            # Category summary
+            category_summary = df.groupby('Item_Type').agg({
+                'Item_Outlet_Sales': ['sum', 'mean', 'count'],
+                'Profit': ['sum', 'mean']
+            }).round(2)
+            
+            csv_category = category_summary.to_csv()
+            st.download_button(
+                label="📊 Category Analysis (CSV)",
+                data=csv_category,
+                file_name='category_analysis.csv',
+                mime='text/csv'
+            )
+        
+        with col2:
+            # Store performance summary
+            store_summary = df.groupby(['Outlet_Type', 'Outlet_Location_Type']).agg({
+                'Item_Outlet_Sales': ['sum', 'mean'],
+                'Profit': 'mean'
+            }).round(2)
+            
+            csv_store = store_summary.to_csv()
+            st.download_button(
+                label="🏪 Store Performance (CSV)",
+                data=csv_store,
+                file_name='store_performance.csv',
+                mime='text/csv'
+            )
+        
+        with col3:
+            # Full dataset with calculations
+            df_export = df.copy()
+            df_export['Profit_Margin'] = (df_export['Profit'] / df_export['Item_Outlet_Sales'] * 100).round(2)
+            
+            csv_full = df_export.to_csv(index=False)
+            st.download_button(
+                label="📋 Complete Dataset (CSV)",
+                data=csv_full,
+                file_name='complete_analysis.csv',
+                mime='text/csv'
+            )
+    
+    else:
+        st.error("Unable to load the sales dataset. Please ensure the data file is available.")
+
+with tab4:
     st.markdown('<h2 class="section-header">Understanding RetailVista</h2>', unsafe_allow_html=True)
     
     # Who benefits section using Streamlit columns
