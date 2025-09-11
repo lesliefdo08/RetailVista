@@ -500,10 +500,10 @@ st.markdown("""
     <div style="background: linear-gradient(45deg, #f8f9fa, #e9ecef); padding: 1.5rem; border-radius: 15px; margin: 1rem 0; border-left: 4px solid #667eea;">
         <h4 class="highlight-text" style="margin-bottom: 0.5rem;">Key Features</h4>
         <ul class="secondary-text" style="margin: 0; list-style-type: none; padding-left: 0;">
-            <li style="margin: 0.5rem 0;"><strong style="color: #667eea;">✓ Intelligent Forms</strong> - No spreadsheet complexity</li>
-            <li style="margin: 0.5rem 0;"><strong style="color: #667eea;">✓ Mobile Optimized</strong> - Perfect on any device</li>
-            <li style="margin: 0.5rem 0;"><strong style="color: #667eea;">✓ Instant Analysis</strong> - Real-time predictions</li>
-            <li style="margin: 0.5rem 0;"><strong style="color: #667eea;">✓ Actionable Insights</strong> - Business recommendations included</li>
+            <li style="margin: 0.5rem 0;"><strong style="color: #667eea;">• Intelligent Forms</strong> - No spreadsheet complexity</li>
+            <li style="margin: 0.5rem 0;"><strong style="color: #667eea;">• Mobile Optimized</strong> - Perfect on any device</li>
+            <li style="margin: 0.5rem 0;"><strong style="color: #667eea;">• Instant Analysis</strong> - Real-time predictions</li>
+            <li style="margin: 0.5rem 0;"><strong style="color: #667eea;">• Actionable Insights</strong> - Business recommendations included</li>
         </ul>
     </div>
 </div>
@@ -989,7 +989,7 @@ with tab3:
         },
         {
             "title": "Pricing Optimization", 
-            "icon": "💡",
+            "icon": "�",
             "scenario": "Determining optimal price points",
             "action": "Compare predictions across price scenarios",
             "result": "Improved profit margins and competitiveness"
@@ -1003,7 +1003,7 @@ with tab3:
                         padding: 2rem; border-radius: 15px; text-align: center; 
                         border-left: 4px solid #667eea; height: 300px;">
                 <h4 class="accent-text">{scenario['title']}</h4>
-                <div style="font-size: 2rem; margin: 1rem 0;">{scenario['icon']}</div>
+                <div style="font-size: 2rem; margin: 1rem 0; color: #667eea; font-weight: bold;">•</div>
                 <p class="secondary-text"><strong>Scenario:</strong> {scenario['scenario']}</p>
                 <p class="secondary-text"><strong>Action:</strong> {scenario['action']}</p>
                 <p class="primary-text"><strong>Result:</strong> {scenario['result']}</p>
