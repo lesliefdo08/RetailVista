@@ -5,6 +5,35 @@ import numpy as np
 import time
 import matplotlib.pyplot as plt
 
+# Utility functions to reduce code repetition
+def format_currency(value):
+    """Format value as rupee currency"""
+    return f"₹{value:,.0f}" if value >= 1 else f"₹{value:.2f}"
+
+def create_section_header(title):
+    """Create standardized section header"""
+    st.markdown(f'<h2 class="section-header">{title}</h2>', unsafe_allow_html=True)
+
+def create_metric_card(label, value, help_text=None):
+    """Create standardized metric card"""
+    if isinstance(value, (int, float)):
+        value = format_currency(value)
+    st.metric(label, value, help=help_text)
+
+def create_chart(data, chart_type='bar', title='', color='#667eea'):
+    """Create standardized chart"""
+    fig, ax = plt.subplots(figsize=(10, 6))
+    if chart_type == 'bar':
+        data.plot(kind='bar', ax=ax, color=color)
+    elif chart_type == 'barh':
+        data.plot(kind='barh', ax=ax, color=color)
+    elif chart_type == 'pie':
+        ax.pie(data.values, labels=data.index, autopct='%1.1f%%', colors=['#667eea', '#764ba2', '#f093fb', '#f5576c'])
+    ax.set_title(title)
+    plt.tight_layout()
+    st.pyplot(fig)
+    plt.close()
+
 # Page configuration
 st.set_page_config(
     page_title='RetailVista: Smart Sales Predictor', 
@@ -29,75 +58,23 @@ st.markdown("""
     }
     
     /* Enhanced Text Classes */
-    .primary-text {
-        color: #2d3748 !important;
-        font-weight: 600 !important;
-        line-height: 1.6 !important;
-        font-size: 1.05rem !important;
-    }
-    
-    .secondary-text {
-        color: #1a202c !important;
-        font-weight: 500 !important;
-        line-height: 1.5 !important;
-        font-size: 1rem !important;
-    }
-    
-    .accent-text {
-        color: #5a67d8 !important;
-        font-weight: 700 !important;
-        font-size: 1.2rem !important;
-    }
-    
-    .highlight-text {
-        color: #e53e3e !important;
-        font-weight: 700 !important;
-        font-size: 1.1rem !important;
-    }
+    .primary-text { color: #2d3748 !important; font-weight: 600 !important; line-height: 1.6 !important; font-size: 1.05rem !important; }
+    .secondary-text { color: #1a202c !important; font-weight: 500 !important; line-height: 1.5 !important; font-size: 1rem !important; }
+    .accent-text { color: #5a67d8 !important; font-weight: 700 !important; font-size: 1.2rem !important; }
+    .highlight-text { color: #e53e3e !important; font-weight: 700 !important; font-size: 1.1rem !important; }
     
     /* Mobile First Responsive Design */
     @media (max-width: 768px) {
-        .hero-title {
-            font-size: 2.2rem !important;
-            line-height: 1.2 !important;
-        }
-        
-        .hero-subtitle {
-            font-size: 1.1rem !important;
-            line-height: 1.4 !important;
-        }
-        
-        .hero-section {
-            padding: 2rem 1rem !important;
-        }
-        
-        .feature-card {
-            padding: 1.5rem !important;
-            margin: 1rem 0 !important;
-        }
-        
-        .scenario-card {
-            margin: 1rem 0 !important;
-            height: auto !important;
-            min-height: 200px !important;
-            padding: 1.5rem !important;
-        }
-        
-        .stColumns > div {
-            margin-bottom: 1rem !important;
-        }
-        
-        .primary-text {
-            font-size: 0.95rem !important;
-        }
-        
-        .secondary-text {
-            font-size: 0.9rem !important;
-        }
-        
-        .accent-text {
-            font-size: 1rem !important;
-        }
+        /* Mobile responsiveness */
+        .hero-title { font-size: 2.2rem !important; line-height: 1.2 !important; }
+        .hero-subtitle { font-size: 1.1rem !important; line-height: 1.4 !important; }
+        .hero-section { padding: 2rem 1rem !important; }
+        .feature-card { padding: 1.5rem !important; margin: 1rem 0 !important; }
+        .scenario-card { margin: 1rem 0 !important; height: auto !important; min-height: 200px !important; padding: 1.5rem !important; }
+        .stColumns > div { margin-bottom: 1rem !important; }
+        .primary-text { font-size: 0.95rem !important; }
+        .secondary-text { font-size: 0.9rem !important; }
+        .accent-text { font-size: 1rem !important; }
     }
     
     /* Hero Section with Enhanced Typography */
@@ -167,26 +144,6 @@ st.markdown("""
         display: flex;
         flex-direction: column;
         justify-content: space-between;
-    }
-    
-    /* Text Styling */
-    .accent-text {
-        color: #667eea !important;
-        font-weight: 600;
-    }
-    
-    .primary-text {
-        color: #2c3e50 !important;
-        font-weight: 500;
-    }
-    
-    .secondary-text {
-        color: #546e7a !important;
-    }
-    
-    .highlight-text {
-        color: #e91e63 !important;
-        font-weight: 600;
     }
     
     /* Enhanced Button Styling */
@@ -400,75 +357,30 @@ st.markdown("""
 tab1, tab2, tab3, tab4 = st.tabs(["Single Product Analysis", "Batch Processing", "Dashboard", "Learn More"])
 
 with tab1:
-    st.markdown('<h2 class="section-header">Single Product Prediction</h2>', unsafe_allow_html=True)
-    
+    create_section_header("Single Product Prediction")
     st.info("Get instant sales predictions for individual products. Simply enter your product and store details below.")
     
     col1, col2 = st.columns(2, gap="large")
     
+    # Product categories and store options
+    product_categories = ["Dairy", "Soft Drinks", "Meat", "Fruits and Vegetables", "Household", "Baking Goods", "Snack Foods", "Frozen Foods", "Breakfast", "Health and Hygiene", "Hard Drinks", "Canned", "Breads", "Starchy Foods", "Others", "Seafood"]
+    store_sizes = ["Small", "Medium", "High"]
+    location_tiers = ["Tier 1", "Tier 2", "Tier 3"]
+    store_types = ["Supermarket Type1", "Supermarket Type2", "Supermarket Type3", "Grocery Store"]
+    
     with col1:
         st.subheader("Product Information")
-        
-        item_weight = st.number_input(
-            "Product Weight (kg)", 
-            min_value=0.1, 
-            max_value=50.0, 
-            value=10.0,
-            help="Enter the product weight from 0.1kg to 50kg"
-        )
-        
-        item_fat_content = st.selectbox(
-            "Fat Content Level", 
-            ["Low Fat", "Regular"],
-            help="Select the fat content category for your product"
-        )
-        
-        item_visibility = st.slider(
-            "Store Visibility Score", 
-            0.0, 1.0, 0.1,
-            help="0.0 = Low visibility, 1.0 = High visibility/prime location"
-        )
-        
-        item_type = st.selectbox(
-            "Product Category", 
-            [
-                "Dairy", "Soft Drinks", "Meat", "Fruits and Vegetables", 
-                "Household", "Baking Goods", "Snack Foods", "Frozen Foods",
-                "Breakfast", "Health and Hygiene", "Hard Drinks", "Canned",
-                "Breads", "Starchy Foods", "Others", "Seafood"
-            ],
-            help="Select the product category that best matches your item"
-        )
+        item_weight = st.number_input("Product Weight (kg)", min_value=0.1, max_value=50.0, value=10.0, help="Enter the product weight from 0.1kg to 50kg")
+        item_fat_content = st.selectbox("Fat Content Level", ["Low Fat", "Regular"], help="Select the fat content category for your product")
+        item_visibility = st.slider("Store Visibility Score", 0.0, 1.0, 0.1, help="0.0 = Low visibility, 1.0 = High visibility/prime location")
+        item_type = st.selectbox("Product Category", product_categories, help="Select the product category that best matches your item")
     
     with col2:
         st.subheader("Store Details")
-        
-        outlet_size = st.selectbox(
-            "Store Size", 
-            ["Small", "Medium", "High"],
-            help="Small = Local store, Medium = Mid-size retail, High = Large supermarket"
-        )
-        
-        outlet_location = st.selectbox(
-            "Location Tier", 
-            ["Tier 1", "Tier 2", "Tier 3"],
-            help="Tier 1 = Major city, Tier 2 = Mid-size city, Tier 3 = Small town"
-        )
-        
-        outlet_type = st.selectbox(
-            "Store Type", 
-            [
-                "Supermarket Type1", "Supermarket Type2", 
-                "Supermarket Type3", "Grocery Store"
-            ],
-            help="Choose the store format that matches your business"
-        )
-        
-        establishment_year = st.slider(
-            "Establishment Year", 
-            1985, 2020, 2000,
-            help="Year when the store was established"
-        )
+        outlet_size = st.selectbox("Store Size", store_sizes, help="Small = Local store, Medium = Mid-size retail, High = Large supermarket")
+        outlet_location = st.selectbox("Location Tier", location_tiers, help="Tier 1 = Major city, Tier 2 = Mid-size city, Tier 3 = Small town")
+        outlet_type = st.selectbox("Store Type", store_types, help="Choose the store format that matches your business")
+        establishment_year = st.slider("Establishment Year", 1985, 2020, 2000, help="Year when the store was established")
     
     # Prediction button
     if st.button("Generate Sales Prediction", type="primary"):
@@ -480,18 +392,12 @@ with tab1:
                 'Item_Weight': item_weight,
                 'Item_Fat_Content': 0 if item_fat_content == "Low Fat" else 1,
                 'Item_Visibility': item_visibility,
-                'Item_Type': ["Dairy", "Soft Drinks", "Meat", "Fruits and Vegetables", 
-                             "Household", "Baking Goods", "Snack Foods", "Frozen Foods",
-                             "Breakfast", "Health and Hygiene", "Hard Drinks", "Canned",
-                             "Breads", "Starchy Foods", "Others", "Seafood"].index(item_type),
-                'Outlet_Size': ["Small", "Medium", "High"].index(outlet_size),
-                'Outlet_Location_Type': ["Tier 1", "Tier 2", "Tier 3"].index(outlet_location),
-                'Outlet_Type': ["Supermarket Type1", "Supermarket Type2", "Supermarket Type3", "Grocery Store"].index(outlet_type),
+                'Item_Type': product_categories.index(item_type),
+                'Outlet_Size': store_sizes.index(outlet_size),
+                'Outlet_Location_Type': location_tiers.index(outlet_location),
+                'Outlet_Type': store_types.index(outlet_type),
                 'Outlet_Establishment_Year': establishment_year,
-                'Item_Identifier': 0,
-                'Outlet_Identifier': 0,
-                'Item_Outlet_Sales': 1000,
-                'Profit': 200
+                'Item_Identifier': 0, 'Outlet_Identifier': 0, 'Item_Outlet_Sales': 1000, 'Profit': 200
             }
             
             try:
@@ -508,7 +414,7 @@ with tab1:
                 prediction = model.predict(df_pred)[0]
                 
                 # Show result
-                st.success(f"**Predicted Sales: ₹{prediction:.2f}**")
+                st.success(f"**Predicted Sales: {format_currency(prediction)}**")
                 
                 # Business insights
                 if prediction > 2000:
@@ -522,36 +428,27 @@ with tab1:
                 st.error(f"Prediction Error: {e}")
 
 with tab2:
-    st.markdown('<h2 class="section-header">Batch Processing & Analysis</h2>', unsafe_allow_html=True)
-    
+    create_section_header("Batch Processing & Analysis")
     st.info("Upload a CSV file containing multiple products for comprehensive analysis.")
     
-    uploaded_file = st.file_uploader(
-        "Upload Product Data (CSV Format)", 
-        type="csv",
-        help="Upload a CSV file containing your product catalog data"
-    )
+    uploaded_file = st.file_uploader("Upload Product Data (CSV Format)", type="csv", help="Upload a CSV file containing your product catalog data")
 
     if uploaded_file is not None:
         try:
             df = pd.read_csv(uploaded_file)
-            
             st.success("File uploaded successfully!")
             
             col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric("Total Records", f"{df.shape[0]:,}")
-            with col2:
-                st.metric("Data Columns", f"{df.shape[1]:,}")
-            with col3:
-                st.metric("File Size", f"{uploaded_file.size/1024:.1f} KB")
+            metrics_data = [("Total Records", f"{df.shape[0]:,}"), ("Data Columns", f"{df.shape[1]:,}"), ("File Size", f"{uploaded_file.size/1024:.1f} KB")]
+            for col, (label, value) in zip([col1, col2, col3], metrics_data):
+                with col:
+                    st.metric(label, value)
             
             st.subheader("Data Preview")
             st.dataframe(df.head(), use_container_width=True)
             
             if st.button("Process All Records", type="primary"):
                 with st.spinner('Running comprehensive analysis...'):
-                    # Process data (simplified for demo)
                     df_processed = df.dropna()
                     categorical_cols = df_processed.select_dtypes(include='object').columns
                     
@@ -569,7 +466,6 @@ with tab2:
                             X_pred = df_processed
                         
                         predictions = model.predict(X_pred)
-                        
                         st.balloons()
                         st.success("Analysis Complete!")
                         
@@ -581,24 +477,18 @@ with tab2:
                         
                         # Statistics
                         col1, col2, col3, col4 = st.columns(4)
-                        with col1:
-                            st.metric("Average Sales", f"₹{predictions.mean():.2f}")
-                        with col2:
-                            st.metric("Top Performer", f"₹{predictions.max():.2f}")
-                        with col3:
-                            st.metric("Lowest", f"₹{predictions.min():.2f}")
-                        with col4:
-                            st.metric("Total Value", f"₹{predictions.sum():,.2f}")
+                        stats_data = [("Average Sales", predictions.mean()), ("Top Performer", predictions.max()), ("Lowest", predictions.min()), ("Total Value", f"₹{predictions.sum():,.2f}")]
+                        for col, (label, value) in zip([col1, col2, col3, col4], stats_data):
+                            with col:
+                                if isinstance(value, str):
+                                    st.metric(label, value)
+                                else:
+                                    create_metric_card(label, value)
                         
                         st.line_chart(predictions)
                         
                         csv_export = df_results.to_csv(index=False)
-                        st.download_button(
-                            label="Download Complete Analysis (CSV)",
-                            data=csv_export,
-                            file_name='retailvista_analysis.csv',
-                            mime='text/csv'
-                        )
+                        st.download_button("Download Complete Analysis (CSV)", csv_export, 'retailvista_analysis.csv', 'text/csv')
                         
                     except Exception as e:
                         st.error(f"Processing Error: {str(e)}")
@@ -619,11 +509,9 @@ with tab2:
                     st.write(f"• **{feature}**")
 
 with tab3:
-    st.markdown('<h2 class="section-header">Analytics Dashboard</h2>', unsafe_allow_html=True)
-    
+    create_section_header("Analytics Dashboard")
     st.info("Explore comprehensive statistics and insights from the retail sales dataset.")
     
-    # Load and analyze the dataset
     @st.cache_data
     def load_sales_data():
         try:
@@ -641,45 +529,20 @@ with tab3:
         
         col1, col2, col3, col4, col5 = st.columns(5)
         
-        with col1:
-            total_sales = df['Item_Outlet_Sales'].sum()
-            st.metric(
-                "Total Sales", 
-                f"₹{total_sales:,.0f}",
-                help="Sum of all item outlet sales"
-            )
+        metrics = [
+            ("Total Sales", df['Item_Outlet_Sales'].sum(), "Sum of all item outlet sales"),
+            ("Average Sales", df['Item_Outlet_Sales'].mean(), "Mean sales per item"),
+            ("Total Profit", df['Profit'].sum(), "Sum of all profits"),
+            ("Avg Profit Margin", f"{(df['Profit'] / df['Item_Outlet_Sales'] * 100).mean():.1f}%", "Average profit margin percentage"),
+            ("Total Products", f"{df.shape[0]:,}", "Number of products in dataset")
+        ]
         
-        with col2:
-            avg_sales = df['Item_Outlet_Sales'].mean()
-            st.metric(
-                "Average Sales", 
-                f"₹{avg_sales:.0f}",
-                help="Mean sales per item"
-            )
-        
-        with col3:
-            total_profit = df['Profit'].sum()
-            st.metric(
-                "Total Profit", 
-                f"₹{total_profit:,.0f}",
-                help="Sum of all profits"
-            )
-        
-        with col4:
-            avg_profit_margin = (df['Profit'] / df['Item_Outlet_Sales'] * 100).mean()
-            st.metric(
-                "Avg Profit Margin", 
-                f"{avg_profit_margin:.1f}%",
-                help="Average profit margin percentage"
-            )
-        
-        with col5:
-            total_products = df.shape[0]
-            st.metric(
-                "Total Products", 
-                f"{total_products:,}",
-                help="Number of products in dataset"
-            )
+        for col, (label, value, help_text) in zip([col1, col2, col3, col4, col5], metrics):
+            with col:
+                if "%" in str(value) or "," in str(value):
+                    st.metric(label, value, help=help_text)
+                else:
+                    create_metric_card(label, value, help_text)
         
         st.markdown("---")
         
@@ -688,102 +551,61 @@ with tab3:
         
         with col1:
             st.subheader("🛍️ Sales by Product Category")
-            
             category_sales = df.groupby('Item_Type')['Item_Outlet_Sales'].sum().sort_values(ascending=False)
-            category_sales_formatted = category_sales.apply(lambda x: f"₹{x:,.0f}")
-            
-            # Create a chart
-            import matplotlib.pyplot as plt
-            fig, ax = plt.subplots(figsize=(10, 8))
-            category_sales.head(10).plot(kind='barh', ax=ax, color='#667eea')
-            ax.set_xlabel('Sales (₹)')
-            ax.set_title('Top 10 Categories by Sales')
-            plt.tight_layout()
-            st.pyplot(fig)
-            plt.close()
+            create_chart(category_sales.head(10), 'barh', 'Top 10 Categories by Sales')
             
             with st.expander("View Detailed Category Statistics"):
-                st.dataframe(
-                    pd.DataFrame({
-                        'Category': category_sales.index,
-                        'Total Sales': category_sales_formatted.values,
-                        'Products Count': df.groupby('Item_Type').size().values
-                    }).set_index('Category'),
-                    use_container_width=True
-                )
+                category_df = pd.DataFrame({
+                    'Category': category_sales.index,
+                    'Total Sales': [format_currency(x) for x in category_sales.values],
+                    'Products Count': df.groupby('Item_Type').size().values
+                }).set_index('Category')
+                st.dataframe(category_df, use_container_width=True)
         
         with col2:
             st.subheader("🏪 Performance by Store Type")
-            
             outlet_performance = df.groupby('Outlet_Type').agg({
-                'Item_Outlet_Sales': ['sum', 'mean', 'count'],
-                'Profit': 'sum'
+                'Item_Outlet_Sales': ['sum', 'mean', 'count'], 'Profit': 'sum'
             }).round(2)
-            
             outlet_performance.columns = ['Total Sales', 'Avg Sales', 'Product Count', 'Total Profit']
             
             # Format currency columns
             for col in ['Total Sales', 'Avg Sales', 'Total Profit']:
-                outlet_performance[col] = outlet_performance[col].apply(lambda x: f"₹{x:,.0f}")
+                outlet_performance[col] = outlet_performance[col].apply(lambda x: format_currency(x))
             
             st.dataframe(outlet_performance, use_container_width=True)
             
             # Pie chart for store type distribution
             store_sales = df.groupby('Outlet_Type')['Item_Outlet_Sales'].sum()
-            fig, ax = plt.subplots(figsize=(8, 6))
-            colors = ['#667eea', '#764ba2', '#f093fb', '#f5576c']
-            ax.pie(store_sales.values, labels=store_sales.index, autopct='%1.1f%%', colors=colors)
-            ax.set_title('Sales Distribution by Store Type')
-            st.pyplot(fig)
-            plt.close()
+            create_chart(store_sales, 'pie', 'Sales Distribution by Store Type')
         
         st.markdown("---")
         
-        # Geographic and Establishment Analysis
+        # Geographic and Age Analysis
         col1, col2 = st.columns(2)
         
         with col1:
             st.subheader("🌍 Geographic Performance")
-            
             location_stats = df.groupby('Outlet_Location_Type').agg({
-                'Item_Outlet_Sales': ['sum', 'mean'],
-                'Profit': 'mean',
-                'Item_Identifier': 'count'
+                'Item_Outlet_Sales': ['sum', 'mean'], 'Profit': 'mean', 'Item_Identifier': 'count'
             }).round(2)
-            
             location_stats.columns = ['Total Sales', 'Avg Sales', 'Avg Profit', 'Store Count']
-            location_stats['Total Sales'] = location_stats['Total Sales'].apply(lambda x: f"₹{x:,.0f}")
-            location_stats['Avg Sales'] = location_stats['Avg Sales'].apply(lambda x: f"₹{x:.0f}")
-            location_stats['Avg Profit'] = location_stats['Avg Profit'].apply(lambda x: f"₹{x:.2f}")
+            
+            # Format currency columns
+            for col in ['Total Sales', 'Avg Sales', 'Avg Profit']:
+                location_stats[col] = location_stats[col].apply(lambda x: format_currency(x))
             
             st.dataframe(location_stats, use_container_width=True)
             
-            # Bar chart for location performance
             location_sales = df.groupby('Outlet_Location_Type')['Item_Outlet_Sales'].mean()
-            fig, ax = plt.subplots(figsize=(8, 5))
-            location_sales.plot(kind='bar', ax=ax, color='#764ba2')
-            ax.set_ylabel('Average Sales (₹)')
-            ax.set_title('Average Sales by Location Tier')
-            ax.tick_params(axis='x', rotation=45)
-            plt.tight_layout()
-            st.pyplot(fig)
-            plt.close()
+            create_chart(location_sales, 'bar', 'Average Sales by Location Tier', '#764ba2')
         
         with col2:
             st.subheader("📅 Store Age Analysis")
+            df['Store_Age'] = 2025 - df['Outlet_Establishment_Year']
+            age_performance = df.groupby('Store_Age').agg({'Item_Outlet_Sales': 'mean', 'Profit': 'mean'}).round(2)
             
-            # Calculate store age
-            current_year = 2025
-            df['Store_Age'] = current_year - df['Outlet_Establishment_Year']
-            
-            age_performance = df.groupby('Store_Age').agg({
-                'Item_Outlet_Sales': 'mean',
-                'Profit': 'mean'
-            }).round(2)
-            
-            # Line chart for store age vs performance
             fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8))
-            
             age_performance['Item_Outlet_Sales'].plot(ax=ax1, color='#667eea', marker='o')
             ax1.set_ylabel('Average Sales (₹)')
             ax1.set_title('Sales Performance vs Store Age')
@@ -801,42 +623,22 @@ with tab3:
         
         st.markdown("---")
         
-        # Product Insights Section
+        # Product Insights
         st.subheader("🔍 Product Performance Insights")
-        
         col1, col2, col3 = st.columns(3)
         
-        with col1:
-            st.subheader("Fat Content Impact")
-            fat_performance = df.groupby('Item_Fat_Content')['Item_Outlet_Sales'].mean().round(2)
-            
-            for fat_type, sales in fat_performance.items():
-                st.metric(f"{fat_type} Products", f"₹{sales:.0f}")
-            
-            # Show difference
-            if len(fat_performance) == 2:
-                diff = abs(fat_performance.iloc[0] - fat_performance.iloc[1])
-                st.info(f"Difference: ₹{diff:.0f}")
+        insights = [
+            ("Fat Content Impact", df.groupby('Item_Fat_Content')['Item_Outlet_Sales'].mean()),
+            ("Store Size Impact", df.groupby('Outlet_Size')['Item_Outlet_Sales'].mean()),
+            ("Visibility Impact", df.groupby(pd.cut(df['Item_Visibility'], bins=[0, 0.05, 0.1, 0.15, 1.0], labels=['Very Low', 'Low', 'Medium', 'High']))['Item_Outlet_Sales'].mean())
+        ]
         
-        with col2:
-            st.subheader("Store Size Impact")
-            size_performance = df.groupby('Outlet_Size')['Item_Outlet_Sales'].mean().round(2)
-            
-            for size, sales in size_performance.items():
-                st.metric(f"{size} Stores", f"₹{sales:.0f}")
-        
-        with col3:
-            st.subheader("Visibility Impact")
-            # Create visibility bins for better analysis
-            df['Visibility_Range'] = pd.cut(df['Item_Visibility'], 
-                                          bins=[0, 0.05, 0.1, 0.15, 1.0], 
-                                          labels=['Very Low', 'Low', 'Medium', 'High'])
-            
-            visibility_performance = df.groupby('Visibility_Range')['Item_Outlet_Sales'].mean().round(2)
-            
-            for visibility, sales in visibility_performance.items():
-                if pd.notna(sales):
-                    st.metric(f"{visibility} Visibility", f"₹{sales:.0f}")
+        for col, (title, data) in zip([col1, col2, col3], insights):
+            with col:
+                st.subheader(title)
+                for category, sales in data.items():
+                    if pd.notna(sales):
+                        create_metric_card(f"{category}", sales)
         
         st.markdown("---")
         
@@ -846,192 +648,97 @@ with tab3:
         with col1:
             st.subheader("🏆 Top Performing Products")
             top_products = df.nlargest(10, 'Item_Outlet_Sales')[['Item_Identifier', 'Item_Type', 'Item_Outlet_Sales', 'Outlet_Type']]
-            top_products['Item_Outlet_Sales'] = top_products['Item_Outlet_Sales'].apply(lambda x: f"₹{x:,.0f}")
+            top_products['Item_Outlet_Sales'] = top_products['Item_Outlet_Sales'].apply(lambda x: format_currency(x))
             st.dataframe(top_products.set_index('Item_Identifier'), use_container_width=True)
         
         with col2:
             st.subheader("📉 Improvement Opportunities")
             bottom_products = df.nsmallest(10, 'Item_Outlet_Sales')[['Item_Identifier', 'Item_Type', 'Item_Outlet_Sales', 'Outlet_Type']]
-            bottom_products['Item_Outlet_Sales'] = bottom_products['Item_Outlet_Sales'].apply(lambda x: f"₹{x:,.0f}")
+            bottom_products['Item_Outlet_Sales'] = bottom_products['Item_Outlet_Sales'].apply(lambda x: format_currency(x))
             st.dataframe(bottom_products.set_index('Item_Identifier'), use_container_width=True)
         
         st.markdown("---")
         
-        # Download section
+        # Export section
         st.subheader("📥 Export Analytics Data")
-        
         col1, col2, col3 = st.columns(3)
         
-        with col1:
-            # Category summary
-            category_summary = df.groupby('Item_Type').agg({
-                'Item_Outlet_Sales': ['sum', 'mean', 'count'],
-                'Profit': ['sum', 'mean']
-            }).round(2)
-            
-            csv_category = category_summary.to_csv()
-            st.download_button(
-                label="📊 Category Analysis (CSV)",
-                data=csv_category,
-                file_name='category_analysis.csv',
-                mime='text/csv'
-            )
+        exports = [
+            ("📊 Category Analysis (CSV)", df.groupby('Item_Type').agg({'Item_Outlet_Sales': ['sum', 'mean', 'count'], 'Profit': ['sum', 'mean']}).round(2), 'category_analysis.csv'),
+            ("🏪 Store Performance (CSV)", df.groupby(['Outlet_Type', 'Outlet_Location_Type']).agg({'Item_Outlet_Sales': ['sum', 'mean'], 'Profit': 'mean'}).round(2), 'store_performance.csv'),
+            ("📋 Complete Dataset (CSV)", df.assign(Profit_Margin=lambda x: (x['Profit'] / x['Item_Outlet_Sales'] * 100).round(2)), 'complete_analysis.csv')
+        ]
         
-        with col2:
-            # Store performance summary
-            store_summary = df.groupby(['Outlet_Type', 'Outlet_Location_Type']).agg({
-                'Item_Outlet_Sales': ['sum', 'mean'],
-                'Profit': 'mean'
-            }).round(2)
-            
-            csv_store = store_summary.to_csv()
-            st.download_button(
-                label="🏪 Store Performance (CSV)",
-                data=csv_store,
-                file_name='store_performance.csv',
-                mime='text/csv'
-            )
-        
-        with col3:
-            # Full dataset with calculations
-            df_export = df.copy()
-            df_export['Profit_Margin'] = (df_export['Profit'] / df_export['Item_Outlet_Sales'] * 100).round(2)
-            
-            csv_full = df_export.to_csv(index=False)
-            st.download_button(
-                label="📋 Complete Dataset (CSV)",
-                data=csv_full,
-                file_name='complete_analysis.csv',
-                mime='text/csv'
-            )
+        for col, (label, data, filename) in zip([col1, col2, col3], exports):
+            with col:
+                st.download_button(label, data.to_csv(), filename, 'text/csv')
     
     else:
         st.error("Unable to load the sales dataset. Please ensure the data file is available.")
 
 with tab4:
-    st.markdown('<h2 class="section-header">Understanding RetailVista</h2>', unsafe_allow_html=True)
+    create_section_header("Understanding RetailVista")
     
-    # Who benefits section using Streamlit columns
+    # Who benefits section
     st.subheader("Who Benefits from RetailVista?")
     
+    benefits_data = [
+        ("Retail Managers", ["Optimize inventory planning", "Reduce stockouts and overstock", "Improve demand forecasting"]),
+        ("Store Owners", ["Better product selection", "Improved pricing strategies", "Maximize profitability"]),
+        ("Business Analysts", ["Data-driven decision making", "Comprehensive sales insights", "Performance analytics"]),
+        ("Product Managers", ["New product forecasting", "Market entry strategies", "Performance optimization"])
+    ]
+    
     col1, col2 = st.columns(2)
-    with col1:
-        st.markdown("""
-        **Retail Managers**
-        - Optimize inventory planning
-        - Reduce stockouts and overstock
-        - Improve demand forecasting
-        """)
-        
-        st.markdown("""
-        **Store Owners**
-        - Better product selection
-        - Improved pricing strategies
-        - Maximize profitability
-        """)
+    for i, (title, items) in enumerate(benefits_data):
+        with col1 if i % 2 == 0 else col2:
+            st.markdown(f"**{title}**\n" + "\n".join([f"- {item}" for item in items]))
     
-    with col2:
-        st.markdown("""
-        **Business Analysts**
-        - Data-driven decision making
-        - Comprehensive sales insights
-        - Performance analytics
-        """)
-        
-        st.markdown("""
-        **Product Managers**
-        - New product forecasting
-        - Market entry strategies
-        - Performance optimization
-        """)
-    
-    # How it works
+    # How it works and factors
     st.subheader("How RetailVista Works")
     
     col1, col2 = st.columns(2)
     with col1:
-        st.markdown("""
-        **AI-Powered Analysis**
-        - Advanced machine learning algorithms
-        - Trained on comprehensive retail datasets
-        - Continuous learning and improvement
-        """)
-    
+        st.markdown("**AI-Powered Analysis**\n- Advanced machine learning algorithms\n- Trained on comprehensive retail datasets\n- Continuous learning and improvement")
     with col2:
-        st.markdown("""
-        **Multi-Factor Modeling**
-        - Product characteristics analysis
-        - Store attribute considerations
-        - Market positioning factors
-        """)
+        st.markdown("**Multi-Factor Modeling**\n- Product characteristics analysis\n- Store attribute considerations\n- Market positioning factors")
     
-    # Key factors using mobile-friendly layout
     st.subheader("Sales Performance Factors")
     
-    # Use expandable sections for better mobile experience
-    with st.expander("Product Attributes"):
-        st.markdown("""
-        - **Weight & Size**: Physical product characteristics
-        - **Category Type**: Product classification and market segment
-        - **Fat Content**: Health and dietary considerations
-        - **Visibility**: In-store placement and merchandising
-        """)
+    factors = [
+        ("Product Attributes", ["Weight & Size: Physical product characteristics", "Category Type: Product classification and market segment", "Fat Content: Health and dietary considerations", "Visibility: In-store placement and merchandising"]),
+        ("Store Characteristics", ["Store Size: Retail space and customer capacity", "Location Tier: Geographic market classification", "Store Format: Retail model and target market", "Establishment Age: Brand maturity and customer loyalty"])
+    ]
     
-    with st.expander("Store Characteristics"):
-        st.markdown("""
-        - **Store Size**: Retail space and customer capacity
-        - **Location Tier**: Geographic market classification
-        - **Store Format**: Retail model and target market
-        - **Establishment Age**: Brand maturity and customer loyalty
-        """)
+    for title, items in factors:
+        with st.expander(title):
+            st.markdown("\n".join([f"- **{item.split(':')[0]}**: {item.split(':')[1]}" for item in items]))
     
-    # Real-world applications using simple cards
+    # Applications and best practices
     st.subheader("Real-World Applications")
     
     scenarios = [
-        {
-            "title": "New Product Launch",
-            "description": "Plan market entry for innovative products by predicting demand across store formats."
-        },
-        {
-            "title": "Seasonal Planning", 
-            "description": "Prepare for holiday seasons by forecasting seasonal product performance."
-        },
-        {
-            "title": "Pricing Optimization",
-            "description": "Determine optimal price points by comparing predictions across scenarios."
-        }
+        {"title": "New Product Launch", "description": "Plan market entry for innovative products by predicting demand across store formats."},
+        {"title": "Seasonal Planning", "description": "Prepare for holiday seasons by forecasting seasonal product performance."},
+        {"title": "Pricing Optimization", "description": "Determine optimal price points by comparing predictions across scenarios."}
     ]
     
     for scenario in scenarios:
-        with st.container():
-            st.markdown(f"**{scenario['title']}**")
-            st.write(scenario['description'])
-            st.markdown("---")
+        st.markdown(f"**{scenario['title']}**")
+        st.write(scenario['description'])
+        st.markdown("---")
     
-    # Best practices
     st.subheader("Best Practices")
     
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown("""
-        **Recommended Practices**
-        - Use realistic and current data
-        - Consider seasonal trends
-        - Validate with business knowledge
-        - Test multiple scenarios
-        - Regular updates as conditions change
-        """)
+    practices = [
+        ("Recommended Practices", ["Use realistic and current data", "Consider seasonal trends", "Validate with business knowledge", "Test multiple scenarios", "Regular updates as conditions change"]),
+        ("Important Considerations", ["Based on historical patterns", "Market disruptions may affect accuracy", "Combine with market research", "Use as one input in decisions", "Monitor performance vs predictions"])
+    ]
     
-    with col2:
-        st.markdown("""
-        **Important Considerations**
-        - Based on historical patterns
-        - Market disruptions may affect accuracy
-        - Combine with market research
-        - Use as one input in decisions
-        - Monitor performance vs predictions
-        """)
+    col1, col2 = st.columns(2)
+    for col, (title, items) in zip([col1, col2], practices):
+        with col:
+            st.markdown(f"**{title}**\n" + "\n".join([f"- {item}" for item in items]))
 
 # Enhanced sidebar
 if feature_names:
