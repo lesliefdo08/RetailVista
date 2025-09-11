@@ -29,29 +29,29 @@ st.markdown("""
     
     /* Enhanced Text Classes */
     .primary-text {
-        color: #1a202c !important;
-        font-weight: 500 !important;
+        color: #2d3748 !important;
+        font-weight: 600 !important;
         line-height: 1.6 !important;
-        font-size: 1rem !important;
+        font-size: 1.05rem !important;
     }
     
     .secondary-text {
-        color: #4a5568 !important;
-        font-weight: 400 !important;
+        color: #1a202c !important;
+        font-weight: 500 !important;
         line-height: 1.5 !important;
-        font-size: 0.95rem !important;
+        font-size: 1rem !important;
     }
     
     .accent-text {
-        color: #667eea !important;
-        font-weight: 600 !important;
-        font-size: 1.1rem !important;
+        color: #5a67d8 !important;
+        font-weight: 700 !important;
+        font-size: 1.2rem !important;
     }
     
     .highlight-text {
         color: #e53e3e !important;
-        font-weight: 600 !important;
-        font-size: 1rem !important;
+        font-weight: 700 !important;
+        font-size: 1.1rem !important;
     }
     
     /* Mobile First Responsive Design */
@@ -354,28 +354,46 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# Welcome Section - Using Streamlit components instead of HTML
-st.markdown('<div class="feature-card">', unsafe_allow_html=True)
-st.markdown('<h3 class="accent-text">Welcome to Professional Sales Forecasting</h3>', unsafe_allow_html=True)
+# Welcome Section - Better readability
 st.markdown("""
-<p class="primary-text" style="font-size: 1.1rem; line-height: 1.6;">
-RetailVista helps businesses make data-driven decisions with accurate sales predictions. 
-Whether you're managing inventory for a small store or analyzing product performance for a retail chain, 
-our AI-powered platform provides the insights you need to succeed.
-</p>
+<div style="background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); 
+           padding: 2.5rem; border-radius: 20px; margin: 2rem 0; 
+           box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);">
+    <h3 style="color: #5a67d8; font-weight: 700; font-size: 1.4rem; margin-bottom: 1.5rem; text-align: center;">
+        Welcome to Professional Sales Forecasting
+    </h3>
+    <p style="color: #2d3748; font-weight: 500; font-size: 1.1rem; line-height: 1.7; text-align: center; margin-bottom: 2rem;">
+        RetailVista helps businesses make data-driven decisions with accurate sales predictions. 
+        Whether you're managing inventory for a small store or analyzing product performance for a retail chain, 
+        our AI-powered platform provides the insights you need to succeed.
+    </p>
+</div>
 """, unsafe_allow_html=True)
 
-# Key Features - Using Streamlit columns instead of HTML lists
-st.markdown('<h4 class="highlight-text">Key Features</h4>', unsafe_allow_html=True)
-col1, col2 = st.columns(2)
-with col1:
-    st.markdown("**• Intelligent Forms** - No spreadsheet complexity")
-    st.markdown("**• Mobile Optimized** - Perfect on any device")
-with col2:
-    st.markdown("**• Instant Analysis** - Real-time predictions")
-    st.markdown("**• Actionable Insights** - Business recommendations")
-
-st.markdown('</div>', unsafe_allow_html=True)
+# Key Features - Using better styling
+st.markdown("""
+<div style="background: linear-gradient(45deg, #f7fafc, #edf2f7); 
+           padding: 2rem; border-radius: 15px; margin: 1rem 0; 
+           border-left: 4px solid #5a67d8;">
+    <h4 style="color: #2b6cb0; font-weight: 700; font-size: 1.2rem; margin-bottom: 1rem; text-align: center;">
+        Key Features
+    </h4>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
+        <div style="color: #2d3748; font-weight: 600; font-size: 1rem;">
+            <strong style="color: #5a67d8;">• Intelligent Forms</strong> - No spreadsheet complexity
+        </div>
+        <div style="color: #2d3748; font-weight: 600; font-size: 1rem;">
+            <strong style="color: #5a67d8;">• Mobile Optimized</strong> - Perfect on any device
+        </div>
+        <div style="color: #2d3748; font-weight: 600; font-size: 1rem;">
+            <strong style="color: #5a67d8;">• Instant Analysis</strong> - Real-time predictions
+        </div>
+        <div style="color: #2d3748; font-weight: 600; font-size: 1rem;">
+            <strong style="color: #5a67d8;">• Actionable Insights</strong> - Business recommendations
+        </div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 # Create tabs
 tab1, tab2, tab3 = st.tabs(["Single Product Analysis", "Batch Processing", "Learn More"])
@@ -489,7 +507,7 @@ with tab1:
                 prediction = model.predict(df_pred)[0]
                 
                 # Show result
-                st.success(f"**Predicted Sales: ${prediction:.2f}**")
+                st.success(f"**Predicted Sales: ₹{prediction:.2f}**")
                 
                 # Business insights
                 if prediction > 2000:
@@ -563,13 +581,13 @@ with tab2:
                         # Statistics
                         col1, col2, col3, col4 = st.columns(4)
                         with col1:
-                            st.metric("Average Sales", f"${predictions.mean():.2f}")
+                            st.metric("Average Sales", f"₹{predictions.mean():.2f}")
                         with col2:
-                            st.metric("Top Performer", f"${predictions.max():.2f}")
+                            st.metric("Top Performer", f"₹{predictions.max():.2f}")
                         with col3:
-                            st.metric("Lowest", f"${predictions.min():.2f}")
+                            st.metric("Lowest", f"₹{predictions.min():.2f}")
                         with col4:
-                            st.metric("Total Value", f"${predictions.sum():,.2f}")
+                            st.metric("Total Value", f"₹{predictions.sum():,.2f}")
                         
                         st.line_chart(predictions)
                         
