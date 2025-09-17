@@ -63,6 +63,14 @@ st.markdown("""
     .accent-text { color: #5a67d8 !important; font-weight: 700 !important; font-size: 1.2rem !important; }
     .highlight-text { color: #e53e3e !important; font-weight: 700 !important; font-size: 1.1rem !important; }
     
+    /* Input Field Text Color Fix */
+    .stSelectbox input, .stTextInput input, .stNumberInput input, .stTextArea textarea,
+    .stSelectbox div[data-baseweb="select"] input, .stSelectbox div[data-baseweb="select"] div,
+    input, textarea, select, .stSelectbox [role="combobox"] {
+        color: #000000 !important;
+        background-color: rgba(255, 255, 255, 0.95) !important;
+    }
+    
     /* Mobile First Responsive Design */
     @media (max-width: 768px) {
         /* Mobile responsiveness */
