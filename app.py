@@ -4,6 +4,10 @@ import joblib
 import numpy as np
 import time
 import matplotlib.pyplot as plt
+import seaborn as sns
+import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 # Utility functions to reduce code repetition
 def format_currency(value):
@@ -37,7 +41,6 @@ def create_chart(data, chart_type='bar', title='', color='#667eea'):
 # Page configuration
 st.set_page_config(
     page_title='RetailVista: Smart Sales Predictor', 
-    page_icon='📊',
     layout='wide',
     initial_sidebar_state='expanded'
 )
@@ -362,7 +365,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Create tabs
-tab1, tab2, tab3, tab4 = st.tabs(["Single Product Analysis", "Batch Processing", "Dashboard", "Learn More"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["Single Product Analysis", "Batch Processing", "Dashboard", "Model Insights", "Learn More"])
 
 with tab1:
     create_section_header("Single Product Prediction")
@@ -533,7 +536,7 @@ with tab3:
     
     if df is not None:
         # Key Metrics Row
-        st.subheader("📊 Key Performance Indicators")
+        st.subheader("Key Performance Indicators")
         
         col1, col2, col3, col4, col5 = st.columns(5)
         
@@ -558,7 +561,7 @@ with tab3:
         col1, col2 = st.columns(2)
         
         with col1:
-            st.subheader("🛍️ Sales by Product Category")
+            st.subheader("Sales by Product Category")
             category_sales = df.groupby('Item_Type')['Item_Outlet_Sales'].sum().sort_values(ascending=False)
             create_chart(category_sales.head(10), 'barh', 'Top 10 Categories by Sales')
             
@@ -571,7 +574,7 @@ with tab3:
                 st.dataframe(category_df, use_container_width=True)
         
         with col2:
-            st.subheader("🏪 Performance by Store Type")
+            st.subheader("Performance by Store Type")
             outlet_performance = df.groupby('Outlet_Type').agg({
                 'Item_Outlet_Sales': ['sum', 'mean', 'count'], 'Profit': 'sum'
             }).round(2)
@@ -593,7 +596,7 @@ with tab3:
         col1, col2 = st.columns(2)
         
         with col1:
-            st.subheader("🌍 Geographic Performance")
+            st.subheader("Geographic Performance")
             location_stats = df.groupby('Outlet_Location_Type').agg({
                 'Item_Outlet_Sales': ['sum', 'mean'], 'Profit': 'mean', 'Item_Identifier': 'count'
             }).round(2)
@@ -609,7 +612,7 @@ with tab3:
             create_chart(location_sales, 'bar', 'Average Sales by Location Tier', '#764ba2')
         
         with col2:
-            st.subheader("📅 Store Age Analysis")
+            st.subheader("Store Age Analysis")
             df['Store_Age'] = 2025 - df['Outlet_Establishment_Year']
             age_performance = df.groupby('Store_Age').agg({'Item_Outlet_Sales': 'mean', 'Profit': 'mean'}).round(2)
             
@@ -632,7 +635,7 @@ with tab3:
         st.markdown("---")
         
         # Product Insights
-        st.subheader("🔍 Product Performance Insights")
+        st.subheader("Product Performance Insights")
         col1, col2, col3 = st.columns(3)
         
         insights = [
@@ -654,13 +657,13 @@ with tab3:
         col1, col2 = st.columns(2)
         
         with col1:
-            st.subheader("🏆 Top Performing Products")
+            st.subheader("Top Performing Products")
             top_products = df.nlargest(10, 'Item_Outlet_Sales')[['Item_Identifier', 'Item_Type', 'Item_Outlet_Sales', 'Outlet_Type']]
             top_products['Item_Outlet_Sales'] = top_products['Item_Outlet_Sales'].apply(lambda x: format_currency(x))
             st.dataframe(top_products.set_index('Item_Identifier'), use_container_width=True)
         
         with col2:
-            st.subheader("📉 Improvement Opportunities")
+            st.subheader("Improvement Opportunities")
             bottom_products = df.nsmallest(10, 'Item_Outlet_Sales')[['Item_Identifier', 'Item_Type', 'Item_Outlet_Sales', 'Outlet_Type']]
             bottom_products['Item_Outlet_Sales'] = bottom_products['Item_Outlet_Sales'].apply(lambda x: format_currency(x))
             st.dataframe(bottom_products.set_index('Item_Identifier'), use_container_width=True)
@@ -668,13 +671,13 @@ with tab3:
         st.markdown("---")
         
         # Export section
-        st.subheader("📥 Export Analytics Data")
+        st.subheader("Export Analytics Data")
         col1, col2, col3 = st.columns(3)
         
         exports = [
-            ("📊 Category Analysis (CSV)", df.groupby('Item_Type').agg({'Item_Outlet_Sales': ['sum', 'mean', 'count'], 'Profit': ['sum', 'mean']}).round(2), 'category_analysis.csv'),
-            ("🏪 Store Performance (CSV)", df.groupby(['Outlet_Type', 'Outlet_Location_Type']).agg({'Item_Outlet_Sales': ['sum', 'mean'], 'Profit': 'mean'}).round(2), 'store_performance.csv'),
-            ("📋 Complete Dataset (CSV)", df.assign(Profit_Margin=lambda x: (x['Profit'] / x['Item_Outlet_Sales'] * 100).round(2)), 'complete_analysis.csv')
+            ("Category Analysis (CSV)", df.groupby('Item_Type').agg({'Item_Outlet_Sales': ['sum', 'mean', 'count'], 'Profit': ['sum', 'mean']}).round(2), 'category_analysis.csv'),
+            ("Store Performance (CSV)", df.groupby(['Outlet_Type', 'Outlet_Location_Type']).agg({'Item_Outlet_Sales': ['sum', 'mean'], 'Profit': 'mean'}).round(2), 'store_performance.csv'),
+            ("Complete Dataset (CSV)", df.assign(Profit_Margin=lambda x: (x['Profit'] / x['Item_Outlet_Sales'] * 100).round(2)), 'complete_analysis.csv')
         ]
         
         for col, (label, data, filename) in zip([col1, col2, col3], exports):
@@ -685,6 +688,306 @@ with tab3:
         st.error("Unable to load the sales dataset. Please ensure the data file is available.")
 
 with tab4:
+    create_section_header("Model Performance Insights")
+    st.info("Analyze model performance, feature importance, and prediction accuracy with advanced visualizations.")
+    
+    @st.cache_data
+    def load_and_analyze_model_performance():
+        try:
+            # Load the dataset for analysis
+            df = pd.read_csv('data/supermarket_sales.csv')
+            
+            # Check what columns are available
+            st.write("Dataset columns:", df.columns.tolist())
+            
+            # Prepare features for model analysis
+            df_processed = df.copy()
+            
+            # Use the actual target that the model was trained on
+            if 'Item_Outlet_Sales' in df_processed.columns:
+                target_column = 'Item_Outlet_Sales'
+            elif 'Item_MRP' in df_processed.columns:
+                target_column = 'Item_MRP'
+            else:
+                # Use the first numeric column as fallback
+                numeric_cols = df_processed.select_dtypes(include=[np.number]).columns
+                target_column = numeric_cols[0] if len(numeric_cols) > 0 else df_processed.columns[-1]
+            
+            # Encode categorical variables
+            categorical_cols = df_processed.select_dtypes(include=['object']).columns
+            for col in categorical_cols:
+                try:
+                    df_processed[col] = df_processed[col].astype('category').cat.codes
+                except:
+                    pass
+            
+            # Get available features (exclude the target and ID columns)
+            exclude_cols = [target_column, 'Item_Identifier', 'Outlet_Identifier'] if 'Item_Identifier' in df_processed.columns else [target_column]
+            available_features = [col for col in df_processed.columns if col not in exclude_cols and df_processed[col].dtype in [np.number, int, float]]
+            
+            # Use the features that the model expects (based on feature_names if available)
+            if feature_names and len(feature_names) > 0:
+                feature_columns = [col for col in feature_names if col in available_features]
+            else:
+                # Use first few numeric features as fallback
+                feature_columns = available_features[:8]  # Take first 8 features
+            
+            # Ensure we have features to work with
+            if len(feature_columns) == 0:
+                return None, None, None, None, None
+            
+            X = df_processed[feature_columns].fillna(0)
+            y_actual = df_processed[target_column]
+            
+            # Make predictions using the loaded model
+            try:
+                y_pred = model.predict(X)
+                return df, X, y_actual, y_pred, feature_columns
+            except Exception as e:
+                st.error(f"Prediction error: {str(e)}")
+                st.write("Available features:", feature_columns)
+                st.write("Data shape:", X.shape)
+                return None, None, None, None, None
+            
+        except Exception as e:
+            st.error(f"Error loading model performance data: {str(e)}")
+            return None, None, None, None, None
+    
+    if model is not None:
+        df, X, y_actual, y_pred, feature_columns = load_and_analyze_model_performance()
+        
+        if df is not None and y_actual is not None and y_pred is not None:
+            # Calculate residuals
+            residuals = y_actual - y_pred
+            
+            col1, col2 = st.columns(2)
+            
+            # Figure 1: Histogram of Residuals
+            with col1:
+                st.subheader("Figure 1: Residuals Distribution")
+                fig1, ax1 = plt.subplots(figsize=(10, 6))
+                
+                # Create histogram with KDE
+                n, bins, patches = ax1.hist(residuals, bins=50, density=True, alpha=0.7, color='skyblue', edgecolor='black')
+                
+                # Add KDE curve
+                try:
+                    from scipy import stats
+                    kde_x = np.linspace(residuals.min(), residuals.max(), 100)
+                    kde = stats.gaussian_kde(residuals)
+                    ax1.plot(kde_x, kde(kde_x), 'r-', linewidth=2, label='KDE')
+                except ImportError:
+                    pass  # Skip KDE if scipy not available
+                
+                ax1.axvline(x=0, color='green', linestyle='--', linewidth=2, label='Perfect Prediction')
+                ax1.set_xlabel('Residuals (Actual - Predicted)')
+                ax1.set_ylabel('Density')
+                ax1.set_title('Prediction Errors Distribution\n(Concentrated near zero with occasional deviations)')
+                ax1.legend()
+                ax1.grid(True, alpha=0.3)
+                
+                st.pyplot(fig1)
+                plt.close()
+                
+                # Add statistics
+                st.write(f"**Mean Residual:** {residuals.mean():.2f}")
+                st.write(f"**Std Residual:** {residuals.std():.2f}")
+                st.write(f"**95% of errors within:** ±{np.percentile(np.abs(residuals), 95):.2f}")
+            
+            # Figure 2: Feature Importance
+            with col2:
+                st.subheader("Figure 2: Feature Importance Analysis")
+                
+                try:
+                    # Get feature importance from the model
+                    if hasattr(model, 'feature_importances_'):
+                        importance_values = model.feature_importances_
+                        importance_df = pd.DataFrame({
+                            'Feature': feature_columns,
+                            'Importance': importance_values
+                        }).sort_values('Importance', ascending=False)
+                        
+                        fig2, ax2 = plt.subplots(figsize=(10, 6))
+                        bars = ax2.barh(range(len(importance_df)), importance_df['Importance'], 
+                                       color=['#ff6b6b' if 'MRP' in feat or 'Visibility' in feat or 'Outlet_Type' in feat 
+                                             else '#4ecdc4' for feat in importance_df['Feature']])
+                        
+                        ax2.set_yticks(range(len(importance_df)))
+                        ax2.set_yticklabels(importance_df['Feature'])
+                        ax2.set_xlabel('Feature Importance')
+                        ax2.set_title('Feature Importance from XGBoost\n(Highlighting MRP, Visibility, and Outlet Type)')
+                        ax2.grid(True, alpha=0.3, axis='x')
+                        
+                        # Add value labels on bars
+                        for i, v in enumerate(importance_df['Importance']):
+                            ax2.text(v + 0.001, i, f'{v:.3f}', va='center')
+                        
+                        st.pyplot(fig2)
+                        plt.close()
+                        
+                        # Show top 3 features
+                        st.write("**Top 3 Most Important Features:**")
+                        for i, (_, row) in enumerate(importance_df.head(3).iterrows()):
+                            st.write(f"{i+1}. **{row['Feature']}**: {row['Importance']:.3f}")
+                    
+                    else:
+                        st.warning("Feature importance not available for this model type.")
+                        
+                except Exception as e:
+                    st.error(f"Error creating feature importance plot: {str(e)}")
+            
+            st.markdown("---")
+            
+            # Figure 3: Category-wise Analysis
+            st.subheader("Figure 3: Category-wise Actual vs Predicted Sales Analysis")
+            
+            # Add category information back to the dataframe
+            df_analysis = df.copy()
+            df_analysis['Predicted_MRP'] = y_pred
+            df_analysis['Residuals'] = residuals
+            
+            # Group by Item_Type (categories)
+            category_performance = df_analysis.groupby('Item_Type').agg({
+                'Item_MRP': 'mean',
+                'Predicted_MRP': 'mean',
+                'Residuals': ['mean', 'std']
+            }).round(2)
+            
+            category_performance.columns = ['Actual_Avg', 'Predicted_Avg', 'Mean_Error', 'Error_StdDev']
+            category_performance = category_performance.reset_index()
+            
+            # Create interactive plotly chart
+            fig3 = go.Figure()
+            
+            # Add actual values
+            fig3.add_trace(go.Scatter(
+                x=category_performance['Item_Type'],
+                y=category_performance['Actual_Avg'],
+                mode='markers+lines',
+                name='Actual Sales',
+                line=dict(color='blue', width=3),
+                marker=dict(size=8)
+            ))
+            
+            # Add predicted values
+            fig3.add_trace(go.Scatter(
+                x=category_performance['Item_Type'],
+                y=category_performance['Predicted_Avg'],
+                mode='markers+lines',
+                name='Predicted Sales',
+                line=dict(color='red', width=3, dash='dash'),
+                marker=dict(size=8)
+            ))
+            
+            fig3.update_layout(
+                title='Category-wise Actual vs Predicted Sales<br><sub>Close alignment in most categories with wider fluctuations in some</sub>',
+                xaxis_title='Product Category',
+                yaxis_title='Average Sales (₹)',
+                hovermode='x unified',
+                height=600
+            )
+            
+            fig3.update_xaxes(tickangle=45)
+            
+            st.plotly_chart(fig3, use_container_width=True)
+            
+            # Additional insights table
+            st.subheader("Category Performance Summary")
+            
+            # Calculate accuracy metrics per category
+            category_performance['Accuracy_Percentage'] = (
+                100 - (np.abs(category_performance['Mean_Error']) / category_performance['Actual_Avg'] * 100)
+            ).round(1)
+            
+            # Format for display
+            display_df = category_performance.copy()
+            display_df['Actual_Avg'] = display_df['Actual_Avg'].apply(lambda x: f"₹{x:,.0f}")
+            display_df['Predicted_Avg'] = display_df['Predicted_Avg'].apply(lambda x: f"₹{x:,.0f}")
+            display_df['Mean_Error'] = display_df['Mean_Error'].apply(lambda x: f"₹{x:,.0f}")
+            display_df['Error_StdDev'] = display_df['Error_StdDev'].apply(lambda x: f"₹{x:,.0f}")
+            display_df['Accuracy_Percentage'] = display_df['Accuracy_Percentage'].apply(lambda x: f"{x:.1f}%")
+            
+            st.dataframe(
+                display_df.rename(columns={
+                    'Item_Type': 'Category',
+                    'Actual_Avg': 'Actual Avg (₹)',
+                    'Predicted_Avg': 'Predicted Avg (₹)',
+                    'Mean_Error': 'Mean Error (₹)',
+                    'Error_StdDev': 'Error Std Dev (₹)',
+                    'Accuracy_Percentage': 'Accuracy %'
+                }),
+                use_container_width=True
+            )
+            
+            # Model Performance Metrics
+            st.markdown("---")
+            st.subheader("Overall Model Performance Metrics")
+            
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                mae = np.mean(np.abs(residuals))
+                st.metric("Mean Absolute Error", f"₹{mae:.2f}")
+            
+            with col2:
+                rmse = np.sqrt(np.mean(residuals**2))
+                st.metric("Root Mean Square Error", f"₹{rmse:.2f}")
+            
+            with col3:
+                mape = np.mean(np.abs(residuals / y_actual)) * 100
+                st.metric("Mean Absolute % Error", f"{mape:.2f}%")
+            
+            with col4:
+                r2 = 1 - (np.sum(residuals**2) / np.sum((y_actual - np.mean(y_actual))**2))
+                st.metric("R² Score", f"{r2:.3f}")
+                
+        else:
+            st.warning("Unable to load real model performance data. Showing demo visualizations instead.")
+            
+            # Demo mode with synthetic data
+            np.random.seed(42)
+            demo_actual = np.random.normal(2000, 500, 1000)
+            demo_predicted = demo_actual + np.random.normal(0, 100, 1000)
+            demo_residuals = demo_actual - demo_predicted
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.subheader("Figure 1: Residuals Distribution (Demo)")
+                fig1, ax1 = plt.subplots(figsize=(10, 6))
+                ax1.hist(demo_residuals, bins=50, density=True, alpha=0.7, color='skyblue', edgecolor='black')
+                ax1.axvline(x=0, color='green', linestyle='--', linewidth=2, label='Perfect Prediction')
+                ax1.set_xlabel('Residuals (Actual - Predicted)')
+                ax1.set_ylabel('Density')
+                ax1.set_title('Demo: Prediction Errors Distribution')
+                ax1.legend()
+                ax1.grid(True, alpha=0.3)
+                st.pyplot(fig1)
+                plt.close()
+                
+            with col2:
+                st.subheader("Figure 2: Feature Importance (Demo)")
+                demo_features = ['Weight', 'Visibility', 'Store_Type', 'Location', 'Size', 'Age', 'Category', 'Fat_Content']
+                demo_importance = [0.25, 0.20, 0.15, 0.12, 0.10, 0.08, 0.06, 0.04]
+                
+                fig2, ax2 = plt.subplots(figsize=(10, 6))
+                bars = ax2.barh(range(len(demo_features)), demo_importance, 
+                               color=['#ff6b6b' if 'Visibility' in feat or 'Store' in feat 
+                                     else '#4ecdc4' for feat in demo_features])
+                ax2.set_yticks(range(len(demo_features)))
+                ax2.set_yticklabels(demo_features)
+                ax2.set_xlabel('Feature Importance')
+                ax2.set_title('Demo: Feature Importance Analysis')
+                ax2.grid(True, alpha=0.3, axis='x')
+                st.pyplot(fig2)
+                plt.close()
+                
+            st.info("Install the complete dataset to see real model performance analysis.")
+                
+    else:
+        st.error("Model not loaded. Please ensure the model file is available.")
+
+with tab5:
     create_section_header("Understanding RetailVista")
     
     # Who benefits section
