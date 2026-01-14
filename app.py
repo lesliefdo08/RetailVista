@@ -20,6 +20,60 @@ st.set_page_config(
     layout="wide"
 )
 
+# Custom CSS for professional styling
+st.markdown("""
+<style>
+    /* Business Summary Card Styling */
+    .summary-card {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 24px;
+        margin: 20px 0;
+    }
+    
+    .summary-card .metric-value {
+        font-size: 28px;
+        font-weight: 600;
+        color: #1f77b4;
+    }
+    
+    .summary-card .metric-label {
+        font-size: 13px;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    /* Confidence Level Styling */
+    .confidence-high {
+        color: #28a745;
+        font-weight: 600;
+    }
+    
+    .confidence-medium {
+        color: #ffc107;
+        font-weight: 600;
+    }
+    
+    .confidence-low {
+        color: #fd7e14;
+        font-weight: 600;
+    }
+    
+    /* Section Headers */
+    h3 {
+        margin-top: 32px;
+        margin-bottom: 16px;
+    }
+    
+    /* Improve readability */
+    .stMarkdown p {
+        line-height: 1.6;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 # Load model, preprocessor, and metrics
 @st.cache_resource
 def load_model_artifacts():
@@ -223,11 +277,11 @@ def calculate_confidence_level(input_data, df):
     avg_confidence = np.mean(confidence_scores) if confidence_scores else 0.8
     
     if avg_confidence >= 0.9:
-        return 'High', '🟢'
+        return 'High', 'confidence-high'
     elif avg_confidence >= 0.7:
-        return 'Medium', '🟡'
+        return 'Medium', 'confidence-medium'
     else:
-        return 'Low', '🟠'
+        return 'Low', 'confidence-low'
 
 def simulate_scenarios(model, preprocessor, input_data, original_prediction):
     """Simulate what-if scenarios for key improvements."""
@@ -506,35 +560,34 @@ with tab1:
             prediction_inr = prediction_usd * USD_TO_INR
             
             # Calculate additional metrics
-            confidence_level, confidence_icon = calculate_confidence_level(input_data, df)
+            confidence_level, confidence_css_class = calculate_confidence_level(input_data, df)
             expected_range_low = prediction_inr * 0.85
             expected_range_high = prediction_inr * 1.15
             
             # Display result with context
-            st.success("✅ Estimation Complete!")
+            st.success("Estimation Complete")
+            
+            st.markdown("")
             
             # BUSINESS SUMMARY CARD
             st.markdown("### 📋 Business Summary")
             
+            # Create styled card using HTML
+            st.markdown('<div class="summary-card">', unsafe_allow_html=True)
+            
             col1, col2, col3, col4 = st.columns(4)
             
             with col1:
-                st.metric(
-                    label="Estimated Monthly Sales",
-                    value=f"₹ {prediction_inr:,.0f}"
-                )
+                st.markdown('<p class="metric-label">Estimated Monthly Sales</p>', unsafe_allow_html=True)
+                st.markdown(f'<p class="metric-value">₹ {prediction_inr:,.0f}</p>', unsafe_allow_html=True)
             
             with col2:
-                st.metric(
-                    label="Expected Range",
-                    value=f"₹ {expected_range_low:,.0f} - {expected_range_high:,.0f}"
-                )
+                st.markdown('<p class="metric-label">Expected Range</p>', unsafe_allow_html=True)
+                st.markdown(f'<p style="font-size: 16px; font-weight: 500;">₹ {expected_range_low:,.0f} - {expected_range_high:,.0f}</p>', unsafe_allow_html=True)
             
             with col3:
-                st.metric(
-                    label="Confidence Level",
-                    value=f"{confidence_icon} {confidence_level}"
-                )
+                st.markdown('<p class="metric-label">Confidence Level</p>', unsafe_allow_html=True)
+                st.markdown(f'<p class="{confidence_css_class}" style="font-size: 18px;">Confidence: {confidence_level}</p>', unsafe_allow_html=True)
             
             with col4:
                 # Determine key improvement lever
@@ -543,14 +596,14 @@ with tab1:
                     key_lever = top_factors[0]['name']
                 else:
                     key_lever = "Multiple Factors"
-                st.metric(
-                    label="Key Improvement Lever",
-                    value=key_lever
-                )
+                st.markdown('<p class="metric-label">Key Improvement Lever</p>', unsafe_allow_html=True)
+                st.markdown(f'<p style="font-size: 16px; font-weight: 500;">{key_lever}</p>', unsafe_allow_html=True)
             
+            st.markdown('</div>', unsafe_allow_html=True)
             st.caption("*Sales converted from dataset scale for demonstration purposes*")
             
-            st.markdown("---")
+            st.markdown("")
+            st.markdown("")
             
             # PREDICTION EXPLANATION SECTION
             with st.expander("🔍 Why This Sales Estimate?", expanded=False):
@@ -569,9 +622,9 @@ with tab1:
                         st.caption(factor['explanation'])
                     st.markdown("")
                 
-                st.info("💡 These are the main factors the model considers. Focus on the top factors for maximum impact.")
+                st.info("These are the main factors the model considers. Focus on the top factors for maximum impact.")
             
-            st.markdown("---")
+            st.markdown("")
             
             # SCENARIO SIMULATION SECTION
             with st.expander("🎯 What-If Analysis (Scenario Simulation)", expanded=False):
@@ -598,9 +651,9 @@ with tab1:
                 else:
                     st.info("Your inputs are already optimized! No immediate improvement scenarios available.")
                 
-                st.caption("💭 These are simulated predictions based on changing specific factors.")
+                st.caption("These are simulated predictions based on changing specific factors.")
             
-            st.markdown("---")
+            st.markdown("")
             
             # CATEGORY BENCHMARKING SECTION
             with st.expander("📊 How Does This Compare? (Category Benchmarks)", expanded=False):
@@ -610,8 +663,7 @@ with tab1:
                 benchmarks = calculate_benchmarks(df, input_data, prediction_usd)
                 
                 for benchmark in benchmarks:
-                    status_color = "🟢" if benchmark['status'] == "Above Average" else "🔵"
-                    st.markdown(f"**{status_color} {benchmark['category']}**")
+                    st.markdown(f"**{benchmark['category']} - {benchmark['status']}**")
                     
                     col_p, col_q = st.columns(2)
                     with col_p:
@@ -622,25 +674,26 @@ with tab1:
                     st.caption(f"{benchmark['status']} by {benchmark['difference_pct']:.1f}%")
                     st.markdown("")
                 
-                st.info("💡 Use these benchmarks to set realistic targets and understand your market position.")
+                st.info("Use these benchmarks to set realistic targets and understand your market position.")
             
-            st.markdown("---")
+            st.markdown("")
             
             # Business insights section
             st.markdown("### 💡 How Can You Improve These Sales?")
             st.markdown("*Based on your inputs, here are practical suggestions:*")
+            st.markdown("")
             
             insights = generate_business_insights(input_data, prediction_usd)
             
             if insights:
                 for insight in insights:
                     with st.container():
-                        st.markdown(f"**{insight['icon']} {insight['title']}**")
+                        st.markdown(f"**{insight['title']}**")
                         st.info(insight['suggestion'])
                         st.markdown("")
             
             # Disclaimer
-            st.caption("💭 *Note: These suggestions are based on general retail principles, not ML predictions. Always consider your local market conditions.*")
+            st.caption("*Note: These suggestions are based on general retail principles, not ML predictions. Always consider your local market conditions.*")
     
     else:  # CSV Upload
         st.subheader("📂 Upload Your Product List")
