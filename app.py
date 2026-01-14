@@ -138,6 +138,197 @@ def map_user_friendly_to_dataset(user_value, field_name):
         return mappings[field_name].get(user_value, user_value)
     return user_value
 
+def explain_prediction(model, preprocessor, input_data):
+    """Explain why the model made this prediction (top 3 factors)."""
+    # Get feature importance from model
+    feature_importance = model.feature_importances_
+    
+    # Get feature names after preprocessing
+    numeric_features, categorical_features = get_feature_columns()
+    feature_names = numeric_features + list(preprocessor.named_transformers_['cat'].get_feature_names_out(categorical_features))
+    
+    # Create importance dataframe
+    importance_df = pd.DataFrame({
+        'feature': feature_names,
+        'importance': feature_importance
+    }).sort_values('importance', ascending=False)
+    
+    # Map technical features to user-friendly explanations
+    feature_explanations = {
+        'Item_MRP': ('Product Price', 'Higher priced items generally have higher sales value'),
+        'Item_Visibility': ('Product Visibility', 'Better placement leads to more customer attention'),
+        'Outlet_Type_Grocery Store': ('Store Type: Grocery', 'Small grocery stores have different sales patterns'),
+        'Outlet_Type_Supermarket Type1': ('Store Type: Supermarket', 'Larger stores attract more customers'),
+        'Outlet_Type_Supermarket Type2': ('Store Type: Supermarket', 'Larger stores attract more customers'),
+        'Outlet_Type_Supermarket Type3': ('Store Type: Supermarket', 'Larger stores attract more customers'),
+        'Outlet_Establishment_Year': ('Store Age', 'Older stores have established customer base'),
+        'Item_Weight': ('Product Weight', 'Heavier items may affect handling and sales'),
+        'Outlet_Size_Medium': ('Store Size: Medium', 'Medium stores balance variety and convenience'),
+        'Outlet_Size_High': ('Store Size: Large', 'Larger stores offer more variety'),
+        'Outlet_Location_Type_Tier 1': ('Location: Metro City', 'Urban areas have higher foot traffic'),
+        'Outlet_Location_Type_Tier 2': ('Location: Developing City', 'Growing cities offer good potential'),
+        'Outlet_Location_Type_Tier 3': ('Location: Small Town', 'Rural areas have different buying patterns'),
+    }
+    
+    # Get top 3 factors
+    top_factors = []
+    for idx, row in importance_df.head(3).iterrows():
+        feature = row['feature']
+        importance = row['importance']
+        
+        # Get user-friendly explanation
+        if feature in feature_explanations:
+            friendly_name, explanation = feature_explanations[feature]
+        else:
+            # Handle item type and other categorical features
+            if feature.startswith('Item_Type_'):
+                item_type = feature.replace('Item_Type_', '')
+                friendly_name = f'Product Category: {item_type}'
+                explanation = f'{item_type} products have specific sales patterns'
+            elif feature.startswith('Item_Fat_Content_'):
+                friendly_name = 'Fat Content'
+                explanation = 'Low-fat vs regular affects health-conscious buyers'
+            else:
+                friendly_name = feature.replace('_', ' ').title()
+                explanation = 'Influences sales patterns'
+        
+        top_factors.append({
+            'name': friendly_name,
+            'explanation': explanation,
+            'importance': importance
+        })
+    
+    return top_factors
+
+def calculate_confidence_level(input_data, df):
+    """Calculate prediction confidence based on whether inputs are typical."""
+    confidence_scores = []
+    
+    # Check numeric features
+    for col in ['Item_Weight', 'Item_Visibility', 'Item_MRP']:
+        if col in input_data.columns and col in df.columns:
+            value = input_data[col].iloc[0]
+            q1 = df[col].quantile(0.25)
+            q3 = df[col].quantile(0.75)
+            iqr = q3 - q1
+            lower_bound = q1 - 1.5 * iqr
+            upper_bound = q3 + 1.5 * iqr
+            
+            if lower_bound <= value <= upper_bound:
+                confidence_scores.append(1.0)  # Within normal range
+            else:
+                confidence_scores.append(0.5)  # Outlier
+    
+    # Average confidence
+    avg_confidence = np.mean(confidence_scores) if confidence_scores else 0.8
+    
+    if avg_confidence >= 0.9:
+        return 'High', '🟢'
+    elif avg_confidence >= 0.7:
+        return 'Medium', '🟡'
+    else:
+        return 'Low', '🟠'
+
+def simulate_scenarios(model, preprocessor, input_data, original_prediction):
+    """Simulate what-if scenarios for key improvements."""
+    scenarios = []
+    
+    # Scenario 1: Improve visibility
+    visibility_levels = {
+        'Low (Hard to Spot)': 0.03,
+        'Medium (Noticeable)': 0.08,
+        'High (Very Prominent)': 0.15
+    }
+    
+    current_visibility = input_data['Item_Visibility'].iloc[0]
+    
+    for level_name, level_value in visibility_levels.items():
+        if level_value > current_visibility:
+            scenario_data = input_data.copy()
+            scenario_data['Item_Visibility'] = level_value
+            
+            X = prepare_features(scenario_data)
+            X_processed = preprocessor.transform(X)
+            new_prediction = model.predict(X_processed)[0]
+            
+            improvement_pct = ((new_prediction - original_prediction) / original_prediction) * 100
+            
+            scenarios.append({
+                'change': f'Increase visibility to {level_name}',
+                'original_sales': original_prediction * USD_TO_INR,
+                'new_sales': new_prediction * USD_TO_INR,
+                'improvement_pct': improvement_pct,
+                'type': 'visibility'
+            })
+    
+    # Scenario 2: Store size upgrade
+    current_size = input_data['Outlet_Size'].iloc[0]
+    size_order = ['Small', 'Medium', 'High']
+    
+    if current_size in size_order:
+        current_idx = size_order.index(current_size)
+        if current_idx < len(size_order) - 1:
+            next_size = size_order[current_idx + 1]
+            
+            scenario_data = input_data.copy()
+            scenario_data['Outlet_Size'] = next_size
+            
+            X = prepare_features(scenario_data)
+            X_processed = preprocessor.transform(X)
+            new_prediction = model.predict(X_processed)[0]
+            
+            improvement_pct = ((new_prediction - original_prediction) / original_prediction) * 100
+            
+            scenarios.append({
+                'change': f'Upgrade store size to {next_size}',
+                'original_sales': original_prediction * USD_TO_INR,
+                'new_sales': new_prediction * USD_TO_INR,
+                'improvement_pct': improvement_pct,
+                'type': 'store_size'
+            })
+    
+    return scenarios
+
+def calculate_benchmarks(df, input_data, prediction_usd):
+    """Calculate category benchmarks for comparison."""
+    benchmarks = []
+    
+    # Benchmark 1: Item Type average
+    item_type = input_data['Item_Type'].iloc[0]
+    category_avg = df[df['Item_Type'] == item_type]['Item_Outlet_Sales'].mean()
+    
+    if category_avg > 0:
+        diff_pct = ((prediction_usd - category_avg) / category_avg) * 100
+        status = 'Above Average' if diff_pct > 0 else 'Below Average'
+        
+        benchmarks.append({
+            'category': f'{item_type} Products',
+            'avg_sales': category_avg * USD_TO_INR,
+            'your_estimate': prediction_usd * USD_TO_INR,
+            'difference_pct': abs(diff_pct),
+            'status': status
+        })
+    
+    # Benchmark 2: Location Type average
+    location = input_data['Outlet_Location_Type'].iloc[0]
+    location_avg = df[df['Outlet_Location_Type'] == location]['Item_Outlet_Sales'].mean()
+    
+    if location_avg > 0:
+        diff_pct = ((prediction_usd - location_avg) / location_avg) * 100
+        status = 'Above Average' if diff_pct > 0 else 'Below Average'
+        
+        location_friendly = {'Tier 1': 'Metro Cities', 'Tier 2': 'Developing Cities', 'Tier 3': 'Small Towns'}
+        
+        benchmarks.append({
+            'category': location_friendly.get(location, location),
+            'avg_sales': location_avg * USD_TO_INR,
+            'your_estimate': prediction_usd * USD_TO_INR,
+            'difference_pct': abs(diff_pct),
+            'status': status
+        })
+    
+    return benchmarks
+
 # Initialize
 try:
     model, preprocessor, metrics = load_model_artifacts()
@@ -314,18 +505,124 @@ with tab1:
             prediction_usd = model.predict(X_processed)[0]
             prediction_inr = prediction_usd * USD_TO_INR
             
+            # Calculate additional metrics
+            confidence_level, confidence_icon = calculate_confidence_level(input_data, df)
+            expected_range_low = prediction_inr * 0.85
+            expected_range_high = prediction_inr * 1.15
+            
             # Display result with context
             st.success("✅ Estimation Complete!")
             
-            # Main prediction display
-            col_a, col_b, col_c = st.columns([1, 2, 1])
-            with col_b:
+            # BUSINESS SUMMARY CARD
+            st.markdown("### 📋 Business Summary")
+            
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
                 st.metric(
                     label="Estimated Monthly Sales",
-                    value=f"₹ {prediction_inr:,.0f}",
-                    help="This is an estimate based on historical patterns"
+                    value=f"₹ {prediction_inr:,.0f}"
                 )
-                st.caption("*Converted from dataset scale for demonstration purposes*")
+            
+            with col2:
+                st.metric(
+                    label="Expected Range",
+                    value=f"₹ {expected_range_low:,.0f} - {expected_range_high:,.0f}"
+                )
+            
+            with col3:
+                st.metric(
+                    label="Confidence Level",
+                    value=f"{confidence_icon} {confidence_level}"
+                )
+            
+            with col4:
+                # Determine key improvement lever
+                top_factors = explain_prediction(model, preprocessor, input_data)
+                if top_factors:
+                    key_lever = top_factors[0]['name']
+                else:
+                    key_lever = "Multiple Factors"
+                st.metric(
+                    label="Key Improvement Lever",
+                    value=key_lever
+                )
+            
+            st.caption("*Sales converted from dataset scale for demonstration purposes*")
+            
+            st.markdown("---")
+            
+            # PREDICTION EXPLANATION SECTION
+            with st.expander("🔍 Why This Sales Estimate?", expanded=False):
+                st.markdown("**Top 3 factors influencing this prediction:**")
+                st.markdown("")
+                
+                explanation_factors = explain_prediction(model, preprocessor, input_data)
+                
+                for i, factor in enumerate(explanation_factors, 1):
+                    col_a, col_b = st.columns([1, 3])
+                    with col_a:
+                        st.markdown(f"**#{i}**")
+                        st.progress(factor['importance'])
+                    with col_b:
+                        st.markdown(f"**{factor['name']}**")
+                        st.caption(factor['explanation'])
+                    st.markdown("")
+                
+                st.info("💡 These are the main factors the model considers. Focus on the top factors for maximum impact.")
+            
+            st.markdown("---")
+            
+            # SCENARIO SIMULATION SECTION
+            with st.expander("🎯 What-If Analysis (Scenario Simulation)", expanded=False):
+                st.markdown("**See how changes could impact your sales:**")
+                st.caption("*This is a simulation using the existing model, not retraining*")
+                st.markdown("")
+                
+                scenarios = simulate_scenarios(model, preprocessor, input_data, prediction_usd)
+                
+                if scenarios:
+                    for scenario in scenarios:
+                        st.markdown(f"**{scenario['change']}**")
+                        
+                        col_x, col_y, col_z = st.columns(3)
+                        with col_x:
+                            st.metric("Current Estimate", f"₹ {scenario['original_sales']:,.0f}")
+                        with col_y:
+                            st.metric("After Change", f"₹ {scenario['new_sales']:,.0f}")
+                        with col_z:
+                            improvement_display = f"+{scenario['improvement_pct']:.1f}%" if scenario['improvement_pct'] > 0 else f"{scenario['improvement_pct']:.1f}%"
+                            st.metric("Improvement", improvement_display)
+                        
+                        st.markdown("")
+                else:
+                    st.info("Your inputs are already optimized! No immediate improvement scenarios available.")
+                
+                st.caption("💭 These are simulated predictions based on changing specific factors.")
+            
+            st.markdown("---")
+            
+            # CATEGORY BENCHMARKING SECTION
+            with st.expander("📊 How Does This Compare? (Category Benchmarks)", expanded=False):
+                st.markdown("**Compare your estimate with similar products:**")
+                st.markdown("")
+                
+                benchmarks = calculate_benchmarks(df, input_data, prediction_usd)
+                
+                for benchmark in benchmarks:
+                    status_color = "🟢" if benchmark['status'] == "Above Average" else "🔵"
+                    st.markdown(f"**{status_color} {benchmark['category']}**")
+                    
+                    col_p, col_q = st.columns(2)
+                    with col_p:
+                        st.metric("Average Sales", f"₹ {benchmark['avg_sales']:,.0f}")
+                    with col_q:
+                        st.metric("Your Estimate", f"₹ {benchmark['your_estimate']:,.0f}")
+                    
+                    st.caption(f"{benchmark['status']} by {benchmark['difference_pct']:.1f}%")
+                    st.markdown("")
+                
+                st.info("💡 Use these benchmarks to set realistic targets and understand your market position.")
             
             st.markdown("---")
             
