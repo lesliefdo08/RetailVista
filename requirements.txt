@@ -8,3 +8,5 @@ streamlit
 joblib
 plotly
 scipy
+requests
+shap

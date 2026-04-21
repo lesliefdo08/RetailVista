@@ -1,174 +1,112 @@
-# RetailVista: Supermarket Sales Prediction
+# RetailVista
 
-**Author:** Leslie Fernando
+RetailVista is an ML-powered retail forecasting application that predicts monthly product sales and provides decision-support insights for store operators.
 
-RetailVista is a machine learning application that predicts supermarket sales (`Item_Outlet_Sales`) based on product and outlet characteristics. This project demonstrates a complete ML workflow including data preprocessing, model training with proper evaluation, and a simple web interface for predictions.
+## Overview
 
-## Target Variable
+RetailVista combines a supervised regression model with explainability and advisory layers:
 
-**Item_Outlet_Sales** - The sales amount (in dollars) for each product at a specific outlet.
+- Predicts sales using structured product and outlet attributes
+- Provides scenario simulation for what-if planning
+- Surfaces explainability-driven factors for each estimate
+- Adds AI-assisted business interpretation for non-technical users
 
-This is a regression problem predicting continuous sales values based on product features (weight, fat content, visibility, type, MRP) and outlet features (establishment year, size, location type, outlet type).
+This project is structured for demo, submission, and deployment on Streamlit.
+
+## Features
+
+- ML Prediction (XGBoost)
+- AI Business Advisor (LLM-powered via OpenRouter with local fail-safe)
+- Scenario Simulation
+- Explainability (SHAP with robust fallback)
+- Dynamic model performance dashboard based on held-out artifacts
+
+## Tech Stack
+
+- Python
+- Streamlit
+- XGBoost
+- scikit-learn
+- Pandas
+- NumPy
+- Plotly
+- SHAP
+- OpenRouter API
 
 ## Project Structure
 
 ```
 RetailVista/
-├── data/
-│   └── supermarket_sales.csv       # Dataset (8,523 records, 13 columns)
-├── model/
-│   ├── model.pkl                   # Trained XGBoost model
-│   ├── preprocessor.pkl            # Fitted preprocessing pipeline
-│   └── metrics.pkl                 # Evaluation metrics
-├── notebooks/
-│   └── train_model.ipynb           # Model training notebook
-├── preprocess.py                   # Shared preprocessing module
-├── app.py                          # Streamlit web application
-└── requirements.txt                # Python dependencies
+├── app/
+│   ├── config/
+│   ├── core/
+│   ├── services/
+│   ├── ui/
+│   └── main.py
+├── artifacts/
+│   ├── feature_stats.json
+│   ├── test_metrics.json
+│   └── test_predictions.csv
+├── scripts/
+│   └── train_pipeline.py
+├── app.py
+├── requirements.txt
+└── README.md
 ```
 
-## Features Used
+## Setup Instructions
 
-The model uses **8 features** (excludes ID columns and target variable to prevent data leakage):
-
-**Product Features (5):**
-- `Item_Weight` - Weight of the product in kg
-- `Item_Fat_Content` - Whether the product is low fat or regular
-- `Item_Visibility` - Display area allocated to product (0-1)
-- `Item_Type` - Category (Dairy, Soft Drinks, Meat, etc.)
-- `Item_MRP` - Maximum Retail Price
-
-**Outlet Features (4):**
-- `Outlet_Establishment_Year` - Year the outlet was established
-- `Outlet_Size` - Size of the outlet (Small/Medium/High)
-- `Outlet_Location_Type` - Location tier (Tier 1/2/3)
-- `Outlet_Type` - Type of outlet (Supermarket Type1/2/3, Grocery Store)
-
-## Model Performance
-
-**Algorithm:** XGBoost Regressor (100 estimators, max_depth=5, learning_rate=0.1)
-
-**Evaluation Metrics (Test Set, 20% holdout):**
-- **RMSE:** $1,047.60
-- **MAE:** $729.87
-- **R²:** 0.5962
-
-**Preprocessing:**
-- Numeric features: `StandardScaler`
-- Categorical features: `OneHotEncoder` with unknown category handling
-- Missing values: Filled with median (numeric features only)
-
-**Data Split:**
-- Training: 6,818 samples (80%)
-- Test: 1,705 samples (20%)
-- Random state: 42 (for reproducibility)
-
-## Quick Start
-
-### 1. Install Dependencies
+1. Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Train Model (Optional - model already trained)
-
-Open and run the training notebook:
+2. Train model and generate artifacts
 
 ```bash
-jupyter notebook notebooks/train_model.ipynb
+python scripts/train_pipeline.py
 ```
 
-This will:
-- Load and preprocess data
-- Train XGBoost model with proper train/test split
-- Evaluate with RMSE, MAE, and R²
-- Save model, preprocessor, and metrics to `model/` directory
-
-### 3. Run Web Application
+3. Run the Streamlit app
 
 ```bash
 streamlit run app.py
 ```
 
-The app has three tabs:
-- **Predictions:** Single product prediction or batch CSV upload
-- **Analytics:** Model performance metrics and visualizations
-- **About:** Dataset and model information
+## Environment Variables
 
-## Dataset
+Set the following variable to enable real LLM mode:
 
-**Source:** Supermarket sales dataset  
-**Size:** 8,523 records  
-**Columns:** 13 (including target variable and IDs)
+```bash
+OPENROUTER_API_KEY=PASTE_YOUR_API_KEY_HERE
+```
 
-The dataset contains sales information for various products across different supermarket outlets, including product characteristics and outlet attributes.
+Optional model override:
 
-## Key Features
+```bash
+OPENROUTER_MODEL=mistralai/mixtral-8x7b
+```
 
-✅ **No Data Leakage** - Target variable and ID columns properly excluded from features  
-✅ **Consistent Preprocessing** - Shared module ensures training/inference consistency  
-✅ **Proper Evaluation** - Train/test split with multiple metrics reported  
-✅ **Simple Interface** - Clean 3-tab Streamlit app without unnecessary complexity  
-✅ **Reproducible** - Fixed random seeds and saved artifacts  
+## Screenshots
 
-## Limitations
+- Add home/prediction screen screenshot
+- Add model performance screen screenshot
+- Add AI advisor output screenshot
 
-- **Historical Data Only** - Model trained on static dataset from specific time period
-- **No Temporal Effects** - Does not account for seasonality or trends over time
-- **No External Factors** - Missing information about promotions, competitors, weather, etc.
-- **Point Estimates** - No confidence intervals or uncertainty quantification
-- **Missing Values** - Simple median imputation may not be optimal
-- **Feature Set** - Limited to available columns; no derived features or interactions
-- **Single Model** - No ensemble or model comparison performed
+## Streamlit Deployment Notes
 
-## Future Work
+- Entry file: `app.py`
+- Paths are relative/project-root aware through centralized constants
+- Required dependencies are listed in `requirements.txt`
 
-Potential improvements for enhanced performance and functionality:
+## Disclaimer
 
-**Model Improvements:**
-- Ensemble methods (stacking multiple models)
-- Hyperparameter tuning with cross-validation
-- Feature engineering (interactions, polynomial features)
-- Time series analysis for seasonal patterns
-- Confidence interval estimation
+- This is an educational prototype.
+- Predictions are based on historical dataset patterns.
+- Insights should support business decisions, not replace domain judgment.
+- The model does not directly include real-time external factors like competitor campaigns, weather, or live pricing shocks.
 
-**Data Enhancements:**
-- Additional external data (demographics, competitor info)
-- Promotion and discount information
-- Historical sales trends
-- Weather and event data
+## Author
 
-**Application Features:**
-- Model retraining pipeline
-- A/B testing framework
-- Feature importance dashboard
-- Prediction explanations (SHAP values)
-- API endpoint for programmatic access
-
-**Infrastructure:**
-- Automated data quality checks
-- Model monitoring and drift detection
-- Continuous integration/deployment
-- Containerization with Docker
-
-## Technical Stack
-
-- **Language:** Python 3.8+
-- **ML Framework:** XGBoost, scikit-learn
-- **Web Framework:** Streamlit
-- **Data Processing:** pandas, numpy
-- **Visualization:** plotly, matplotlib, seaborn
-- **Model Persistence:** joblib
-
-## Repository
-
-GitHub: [github.com/lesliefdo08/RetailVista](https://github.com/lesliefdo08/RetailVista)
-
-## License
-
-This project is for educational and demonstration purposes.
-
----
-
-**Note:** This is an ML application demo showcasing a complete workflow from data preprocessing to model deployment. It is not production-ready and should not be used for actual business decisions without proper validation and monitoring.
+Leslie Fernando

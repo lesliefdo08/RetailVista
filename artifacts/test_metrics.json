@@ -1,0 +1,12 @@
+{
+  "train_rmse": 958.126053047252,
+  "train_mae": 681.806490002448,
+  "train_r2": 0.6896585722623065,
+  "test_rmse": 1047.6025086180034,
+  "test_mae": 729.8673871481511,
+  "test_r2": 0.5962166656865191,
+  "dataset_size": 8523,
+  "trained_at": "2026-04-21T13:29:08.350821+00:00",
+  "target": "Item_Outlet_Sales",
+  "feature_count": 9
+}
