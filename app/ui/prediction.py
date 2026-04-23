@@ -37,8 +37,9 @@ def _generate_rule_based_insights(input_data: pd.DataFrame) -> list[str]:
 def render_prediction_tab(model, preprocessor) -> None:
     st.header("Get Sales Estimate")
     st.info(
-        "This tool helps shop owners and students estimate monthly sales and understand how to improve them."
+        "RetailVista is a machine learning-based decision-support tool designed to estimate product-level sales and provide interpretable insights based on historical retail data."
     )
+    st.caption("Model trained on structured retail dataset.")
 
     with st.expander("Before You Start", expanded=False):
         st.markdown(
@@ -112,7 +113,8 @@ def render_prediction_tab(model, preprocessor) -> None:
     stats = load_feature_stats()
     confidence_level, confidence_note = calculate_confidence_level(features, stats.get("numeric_bounds", {}))
 
-    st.subheader("Business Summary")
+    st.divider()
+    st.subheader("Prediction")
     c1, c2, c3, c4 = st.columns(4)
     with c1:
         st.metric("Model Prediction (INR)", format_currency(prediction_inr))
@@ -123,7 +125,10 @@ def render_prediction_tab(model, preprocessor) -> None:
     with c4:
         st.metric("Primary Lever", "Visibility / Pricing")
     st.caption(confidence_note)
+    st.caption("Based on held-out test dataset.")
 
+    st.divider()
+    st.subheader("Model Insight")
     with st.expander("Why This Sales Estimate?", expanded=False):
         local_exp, method = shap_local_explanation(model, preprocessor, features)
         st.caption(f"Method: {method}")
@@ -131,6 +136,8 @@ def render_prediction_tab(model, preprocessor) -> None:
         for row in local_exp:
             st.write(f"- {row['feature']}: {row['direction']} prediction")
 
+    st.divider()
+    st.subheader("Scenario Analysis")
     with st.expander("Scenario Simulation (Not Retraining)", expanded=False):
         scenarios = simulate_scenarios(model, preprocessor, input_data, USD_TO_INR)
         if not scenarios:
@@ -150,13 +157,15 @@ def render_prediction_tab(model, preprocessor) -> None:
                 f"(Avg {format_currency(b['average'])}, Estimate {format_currency(b['estimate'])})"
             )
 
-    st.subheader("How Can You Improve These Sales?")
+    st.divider()
+    st.subheader("Insights")
     st.caption("Rule-Based Insight")
     for tip in _generate_rule_based_insights(input_data):
         st.info(tip)
 
+    st.divider()
     st.subheader("AI Business Advisor")
-    st.caption("AI-Generated Insight")
+    st.caption("AI Interpretation")
     llm = LLMService()
     dataset_stats = load_dataset_stats()
     ai = llm.generate_insights(
@@ -165,7 +174,7 @@ def render_prediction_tab(model, preprocessor) -> None:
         dataset_stats,
     )
     st.caption(f"Advisor source: {ai.source}")
-    st.write(f"Explanation: {ai.explanation}")
-    st.write(f"Recommendation: {ai.recommendation}")
-    st.write(f"Risk: {ai.risk}")
+    st.write(f"Model Insight: {ai.explanation}")
+    st.write(f"AI Interpretation: {ai.recommendation}")
+    st.write(f"Risk Note: {ai.risk}")
     st.caption("Insights are based on historical patterns and should support-not replace-business decisions.")

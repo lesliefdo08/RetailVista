@@ -18,19 +18,47 @@ def render_analytics_tab() -> None:
         st.warning("No evaluation artifacts found. Run scripts/train_pipeline.py first.")
         return
 
-    c1, c2, c3, c4, c5 = st.columns(5)
+    c1, c2, c3 = st.columns(3)
     with c1:
-        st.metric("Average Error", format_currency(metrics.get("test_mae", 0) * USD_TO_INR))
+        st.metric(
+            "MAE",
+            format_currency(metrics.get("test_mae", 0) * USD_TO_INR),
+            help="Average absolute prediction error.",
+        )
     with c2:
-        st.metric("RMSE", format_currency(metrics.get("test_rmse", 0) * USD_TO_INR))
+        st.metric(
+            "RMSE",
+            format_currency(metrics.get("test_rmse", 0) * USD_TO_INR),
+            help="Penalizes larger errors more strongly than MAE.",
+        )
     with c3:
-        st.metric("R2", f"{metrics.get('test_r2', 0) * 100:.2f}%")
+        st.metric(
+            "R2",
+            f"{metrics.get('test_r2', 0) * 100:.2f}%",
+            help="Indicates how much variance in sales is explained by the model.",
+        )
+
+    c4, c5, c6, c7 = st.columns(4)
     with c4:
-        st.metric("Dataset Size", str(metrics.get("dataset_size", "unknown")))
+        st.metric(
+            "MAPE",
+            f"{metrics.get('test_mape', 0):.2f}%",
+            help="Average percentage error between predicted and actual values.",
+        )
     with c5:
+        st.metric(
+            "Median Absolute Error",
+            format_currency(metrics.get("test_median_ae", 0) * USD_TO_INR),
+            help="Median absolute prediction error, less sensitive to outliers.",
+        )
+    with c6:
+        st.metric("Dataset Size", str(metrics.get("dataset_size", "unknown")))
+    with c7:
         st.metric("Last Trained", str(metrics.get("trained_at", "unknown")))
 
     st.caption("Metrics are computed on a held-out test dataset, not training data.")
+    st.caption("Model trained on structured retail dataset.")
+    st.divider()
 
     fig = go.Figure()
     fig.add_trace(

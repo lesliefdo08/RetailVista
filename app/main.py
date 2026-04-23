@@ -10,6 +10,23 @@ from app.ui.prediction import render_prediction_tab
 def run_app() -> None:
     st.set_page_config(page_title="RetailVista", page_icon="RV", layout="wide")
 
+    st.markdown(
+        """
+        <style>
+        .block-container {padding-top: 1.5rem; padding-bottom: 2rem;}
+        [data-testid="stMetric"] {
+            background: #f8fafc;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 0.75rem 0.85rem;
+        }
+        [data-testid="stMetricLabel"] {color: #334155;}
+        [data-testid="stMetricValue"] {color: #0f172a;}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
     model, preprocessor, _ = load_model_bundle()
 
     st.title("RetailVista")
@@ -23,7 +40,7 @@ def run_app() -> None:
         st.header("About")
         st.markdown(
             "### What RetailVista Is\n"
-            "RetailVista is an ML-powered retail forecasting tool that estimates product-level monthly sales and translates model outputs into practical business guidance.\n\n"
+            "RetailVista is a machine learning-based decision-support tool designed to estimate product-level sales and provide interpretable insights based on historical retail data.\n\n"
             "### Problem It Solves\n"
             "Small retailers often make pricing, assortment, and shelf placement decisions using intuition only. RetailVista provides data-driven estimates and decision support so store operators can test choices with evidence.\n\n"
             "### Key Features\n"
@@ -43,6 +60,9 @@ def run_app() -> None:
             "- This is an educational prototype.\n"
             "- Predictions are based on a historical dataset and may not reflect live market shifts.\n"
             "- External drivers like competitor actions, weather, festivals, and macroeconomic shocks are not modeled directly."
+        )
+        st.info(
+            "This system is intended for educational and demonstration purposes. Predictions are based on historical dataset patterns and may not reflect real-world dynamics such as promotions, competitor activity, or seasonal effects."
         )
         st.caption("Insights are based on historical patterns and should support-not replace-business decisions.")
 

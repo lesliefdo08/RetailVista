@@ -12,8 +12,8 @@ if str(ROOT_DIR) not in sys.path:
 import joblib
 import numpy as np
 import pandas as pd
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-from sklearn.model_selection import KFold, cross_validate, train_test_split
+from sklearn.metrics import mean_absolute_error, mean_squared_error, median_absolute_error, r2_score
+from sklearn.model_selection import KFold, RandomizedSearchCV, cross_validate, train_test_split
 from sklearn.pipeline import Pipeline
 from xgboost import XGBRegressor
 
@@ -36,6 +36,14 @@ def _rmse(y_true, y_pred):
     return float(np.sqrt(mean_squared_error(y_true, y_pred)))
 
 
+def _mape(y_true, y_pred) -> float:
+    y_true_arr = np.asarray(y_true, dtype=float)
+    y_pred_arr = np.asarray(y_pred, dtype=float)
+    denom = np.where(np.abs(y_true_arr) < 1e-8, np.nan, np.abs(y_true_arr))
+    ape = np.abs((y_true_arr - y_pred_arr) / denom)
+    return float(np.nanmean(ape) * 100.0)
+
+
 def main() -> None:
     ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
     MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -48,18 +56,48 @@ def main() -> None:
         X, y, test_size=0.2, random_state=42
     )
 
-    preprocessor = create_preprocessor()
-    X_train_t = preprocessor.fit_transform(X_train)
-    X_test_t = preprocessor.transform(X_test)
+    tuning_pipeline = Pipeline(
+        steps=[
+            ("preprocessor", create_preprocessor()),
+            (
+                "model",
+                XGBRegressor(
+                    objective="reg:squarederror",
+                    random_state=42,
+                    n_jobs=-1,
+                ),
+            ),
+        ]
+    )
 
-    model = XGBRegressor(
-        n_estimators=100,
-        max_depth=5,
-        learning_rate=0.1,
+    param_distributions = {
+        "model__n_estimators": [200, 300, 400, 500, 600],
+        "model__max_depth": [4, 5, 6, 7, 8],
+        "model__learning_rate": [0.03, 0.05, 0.07, 0.1],
+        "model__subsample": [0.8, 0.9, 1.0],
+        "model__colsample_bytree": [0.8, 0.9, 1.0],
+        "model__min_child_weight": [1, 3, 5],
+    }
+
+    search = RandomizedSearchCV(
+        estimator=tuning_pipeline,
+        param_distributions=param_distributions,
+        n_iter=20,
+        scoring="neg_root_mean_squared_error",
+        cv=KFold(n_splits=5, shuffle=True, random_state=42),
         random_state=42,
         n_jobs=-1,
+        refit=True,
+        verbose=0,
     )
-    model.fit(X_train_t, y_train)
+    search.fit(X_train, y_train)
+
+    best_pipeline = search.best_estimator_
+    preprocessor = best_pipeline.named_steps["preprocessor"]
+    model = best_pipeline.named_steps["model"]
+
+    X_train_t = preprocessor.transform(X_train)
+    X_test_t = preprocessor.transform(X_test)
 
     train_pred = model.predict(X_train_t)
     test_pred = model.predict(X_test_t)
@@ -67,20 +105,36 @@ def main() -> None:
     metrics = {
         "train_rmse": _rmse(y_train, train_pred),
         "train_mae": float(mean_absolute_error(y_train, train_pred)),
+        "train_mape": _mape(y_train, train_pred),
+        "train_median_ae": float(median_absolute_error(y_train, train_pred)),
         "train_r2": float(r2_score(y_train, train_pred)),
         "test_rmse": _rmse(y_test, test_pred),
         "test_mae": float(mean_absolute_error(y_test, test_pred)),
+        "test_mape": _mape(y_test, test_pred),
+        "test_median_ae": float(median_absolute_error(y_test, test_pred)),
         "test_r2": float(r2_score(y_test, test_pred)),
         "dataset_size": int(len(df)),
         "trained_at": datetime.now(timezone.utc).isoformat(),
         "target": "Item_Outlet_Sales",
         "feature_count": len(get_feature_columns()[0]) + len(get_feature_columns()[1]),
+        "selected_params": {
+            "n_estimators": int(model.get_params().get("n_estimators", 0)),
+            "max_depth": int(model.get_params().get("max_depth", 0)),
+            "learning_rate": float(model.get_params().get("learning_rate", 0.0)),
+            "subsample": float(model.get_params().get("subsample", 0.0)),
+            "colsample_bytree": float(model.get_params().get("colsample_bytree", 0.0)),
+            "min_child_weight": float(model.get_params().get("min_child_weight", 0.0)),
+        },
     }
 
     cv_model = XGBRegressor(
-        n_estimators=100,
-        max_depth=5,
-        learning_rate=0.1,
+        n_estimators=metrics["selected_params"]["n_estimators"],
+        max_depth=metrics["selected_params"]["max_depth"],
+        learning_rate=metrics["selected_params"]["learning_rate"],
+        subsample=metrics["selected_params"]["subsample"],
+        colsample_bytree=metrics["selected_params"]["colsample_bytree"],
+        min_child_weight=metrics["selected_params"]["min_child_weight"],
+        objective="reg:squarederror",
         random_state=42,
         n_jobs=-1,
     )

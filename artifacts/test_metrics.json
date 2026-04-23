@@ -1,12 +1,24 @@
 {
-  "train_rmse": 958.126053047252,
-  "train_mae": 681.806490002448,
-  "train_r2": 0.6896585722623065,
-  "test_rmse": 1047.6025086180034,
-  "test_mae": 729.8673871481511,
-  "test_r2": 0.5962166656865191,
+  "train_rmse": 985.8275764982276,
+  "train_mae": 702.2034242380405,
+  "train_mape": 53.122560631298214,
+  "train_median_ae": 472.33012744140626,
+  "train_r2": 0.6714538520033402,
+  "test_rmse": 1039.7017647111088,
+  "test_mae": 728.0443864827622,
+  "test_mape": 58.436190588374245,
+  "test_median_ae": 475.3615248046874,
+  "test_r2": 0.6022841558041966,
   "dataset_size": 8523,
-  "trained_at": "2026-04-21T13:29:08.350821+00:00",
+  "trained_at": "2026-04-23T14:25:25.345975+00:00",
   "target": "Item_Outlet_Sales",
-  "feature_count": 9
+  "feature_count": 9,
+  "selected_params": {
+    "n_estimators": 200,
+    "max_depth": 4,
+    "learning_rate": 0.07,
+    "subsample": 0.9,
+    "colsample_bytree": 0.8,
+    "min_child_weight": 3.0
+  }
 }
